@@ -48,7 +48,7 @@ const formatTimeAgo = (dateString) => {
 const updateDateTime = () => {
     const el = document.getElementById('current-datetime');
     // Set to the specific date and time as requested.
-    const now = new Date('2025-09-19T16:06:00');
+    const now = new Date('2025-09-19T16:13:00');
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'America/Halifax' };
     el.textContent = now.toLocaleDateString('en-CA', options) + " (Dartmouth, NS)";
 };
@@ -238,13 +238,13 @@ const handleFormSubmit = async (e) => {
 
     try {
         if (idInput) {
-            await updateDoc(doc(db, `/artifacts/${appId}/public/data/containers`, idInput), containerData);
+            await updateDoc(doc(db, `/artifacts/${window.appId}/public/data/containers`, idInput), containerData);
         } else {
             const existing = containers.find(c => c.serial === serial);
             if (existing) {
                 console.error('A container with this serial already exists.'); return;
             }
-            await addDoc(collection(db, `/artifacts/${appId}/public/data/containers`), containerData);
+            await addDoc(collection(db, `/artifacts/${window.appId}/public/data/containers`), containerData);
         }
         closeModal();
     } catch (error) {
@@ -267,7 +267,7 @@ const handleDriverFormSubmit = async (e) => {
     const driverData = { name, idNumber, plate, weight: Number(weight) };
 
     try {
-        await addDoc(collection(db, `/artifacts/${appId}/public/data/app_drivers`), driverData);
+        await addDoc(collection(db, `/artifacts/${window.appId}/public/data/app_drivers`), driverData);
         e.target.reset(); 
     } catch (error) {
         console.error(`Error adding driver:`, error);
@@ -290,7 +290,7 @@ const handleEditFormSubmit = async (e) => {
     }
 
     try {
-        await updateDoc(doc(db, `/artifacts/${appId}/public/data/${collectionName}`, id), updatedData);
+        await updateDoc(doc(db, `/artifacts/${window.appId}/public/data/${collectionName}`, id), updatedData);
         closeEditModal();
     } catch (error) {
         console.error(`Error updating item in ${collectionName}:`, error);
@@ -300,7 +300,7 @@ const handleEditFormSubmit = async (e) => {
 const addCollectionItem = async (collectionName, value) => {
     if (!value) return;
     try {
-        await addDoc(collection(db, `/artifacts/${appId}/public/data/${collectionName}`), { name: value });
+        await addDoc(collection(db, `/artifacts/${window.appId}/public/data/${collectionName}`), { name: value });
     } catch (error) {
         console.error(`Error adding to ${collectionName}:`, error);
     }
@@ -308,7 +308,7 @@ const addCollectionItem = async (collectionName, value) => {
 
 const deleteCollectionItem = async (collectionName, docId) => {
     try {
-        await deleteDoc(doc(db, `/artifacts/${appId}/public/data/${collectionName}`, docId));
+        await deleteDoc(doc(db, `/artifacts/${window.appId}/public/data/${collectionName}`, docId));
     } catch (error) {
         console.error(`Error deleting from ${collectionName}:`, error);
     }
@@ -360,7 +360,7 @@ const setupRealtimeListeners = () => {
     };
 
     for (const [colName, config] of Object.entries(collections)) {
-        onSnapshot(collection(db, `/artifacts/${appId}/public/data/${colName}`), (snapshot) => {
+        onSnapshot(collection(db, `/artifacts/${window.appId}/public/data/${colName}`), (snapshot) => {
             const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             if (data.every(item => item.name)) {
                 data.sort((a,b) => a.name.localeCompare(b.name));
@@ -380,13 +380,13 @@ async function initFirebase() {
     setLogLevel('Debug');
     
     // A simple check to prevent the app from crashing if the config isn't filled out for local testing.
-    if (typeof firebaseConfig === 'undefined' || !firebaseConfig.projectId || firebaseConfig.projectId === "YOUR_PROJECT_ID") {
+    if (typeof window.firebaseConfig === 'undefined' || !window.firebaseConfig.projectId || window.firebaseConfig.projectId === "YOUR_PROJECT_ID") {
         console.error("Firebase config is missing or incomplete. Please add your Firebase config in firebase-config.js for local testing.");
         document.getElementById('no-containers-message').querySelector('p').textContent = 'Firebase is not configured. Please check firebase-config.js and see the browser console for instructions.';
         return;
     }
 
-    const app = initializeApp(firebaseConfig);
+    const app = initializeApp(window.firebaseConfig);
     db = getFirestore(app);
     auth = getAuth(app);
     
@@ -414,3 +414,4 @@ document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
     initFirebase();
 });
+
