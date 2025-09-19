@@ -86,7 +86,31 @@
         <div class="container mx-auto p-4 md:p-8">
             <header class="mb-6"><h1 class="text-3xl font-bold text-gray-900">Settings</h1><p class="text-gray-500 mt-1">Manage your application's data collections.</p></header>
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200"><h2 class="text-lg font-semibold mb-4 border-b pb-2">Manage Drivers</h2><form id="add-driver-form" class="flex gap-2 mb-4"><input type="text" id="new-driver-name" placeholder="New driver name..." class="flex-grow w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" required><button type="submit" class="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700">Add</button></form><ul id="drivers-list" class="space-y-2"></ul></div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+                    <h2 class="text-lg font-semibold mb-4 border-b pb-2">Manage Drivers</h2>
+                    <form id="add-driver-form" class="space-y-4 mb-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="new-driver-name" class="block text-sm font-medium text-gray-700">Name</label>
+                                <input type="text" id="new-driver-name" placeholder="John Doe" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" required>
+                            </div>
+                            <div>
+                                <label for="new-driver-id" class="block text-sm font-medium text-gray-700">ID Number</label>
+                                <input type="text" id="new-driver-id" placeholder="D12345" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" required>
+                            </div>
+                            <div>
+                                <label for="new-driver-plate" class="block text-sm font-medium text-gray-700">Plate</label>
+                                <input type="text" id="new-driver-plate" placeholder="TRK-001" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" required>
+                            </div>
+                            <div>
+                                <label for="new-driver-weight" class="block text-sm font-medium text-gray-700">Tare Weight (kg)</label>
+                                <input type="number" id="new-driver-weight" placeholder="18000" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-300">Add Driver</button>
+                    </form>
+                    <ul id="drivers-list" class="space-y-3"></ul>
+                </div>
                 <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200"><h2 class="text-lg font-semibold mb-4 border-b pb-2">Manage Locations</h2><form id="add-location-form" class="flex gap-2 mb-4"><input type="text" id="new-location-name" placeholder="New location name..." class="flex-grow w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" required><button type="submit" class="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700">Add</button></form><ul id="locations-list" class="space-y-2"></ul></div>
                 <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200"><h2 class="text-lg font-semibold mb-4 border-b pb-2">Manage Statuses</h2><form id="add-status-form" class="flex gap-2 mb-4"><input type="text" id="new-status-name" placeholder="New status name..." class="flex-grow w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" required><button type="submit" class="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700">Add</button></form><ul id="statuses-list" class="space-y-2"></ul></div>
             </div>
@@ -153,9 +177,10 @@
 
         const updateDateTime = () => {
             const el = document.getElementById('current-datetime');
-            const now = new Date();
+            // Set to the specific date and time as requested, in the specified timezone.
+            const now = new Date('2025-09-19T15:58:00');
             const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'America/Halifax' };
-            el.textContent = now.toLocaleDateString('en-CA', options);
+            el.textContent = now.toLocaleDateString('en-CA', options) + " (Dartmouth, NS)";
         };
         
         // --- PAGE NAVIGATION ---
@@ -210,6 +235,30 @@
                 card.className = "bg-white p-5 rounded-xl shadow-sm border border-gray-200";
                 card.innerHTML = `<h3 class="text-sm font-medium text-gray-500">At ${loc.name}</h3><p class="text-3xl font-bold mt-2 text-sky-600">${count}</p>`;
                 kpiContainer.appendChild(card);
+            });
+        };
+
+        const renderDriversList = () => {
+            const listElement = document.getElementById('drivers-list');
+            listElement.innerHTML = '';
+            drivers.forEach(driver => {
+                const li = document.createElement('li');
+                li.className = 'bg-gray-50 p-3 rounded-md border border-gray-200';
+                li.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="font-semibold text-gray-900">${driver.name}</p>
+                            <p class="text-xs text-gray-500">ID: ${driver.idNumber} | Plate: ${driver.plate} | Tare: ${driver.weight}kg</p>
+                        </div>
+                        <button data-id="${driver.id}" class="delete-item-btn text-gray-400 hover:text-red-500 flex-shrink-0 ml-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 pointer-events-none" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+                `;
+                li.querySelector('button').addEventListener('click', () => deleteCollectionItem('app_drivers', driver.id));
+                listElement.appendChild(li);
             });
         };
 
@@ -288,6 +337,33 @@
                 console.error("Error saving container: ", error);
             }
         };
+
+        const handleDriverFormSubmit = async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('new-driver-name').value.trim();
+            const idNumber = document.getElementById('new-driver-id').value.trim();
+            const plate = document.getElementById('new-driver-plate').value.trim().toUpperCase();
+            const weight = document.getElementById('new-driver-weight').value;
+
+            if (!name || !idNumber || !plate || !weight) {
+                console.error("All driver fields are required.");
+                return; 
+            }
+
+            const driverData = {
+                name: name,
+                idNumber: idNumber,
+                plate: plate,
+                weight: Number(weight)
+            };
+
+            try {
+                await addDoc(collection(db, `/artifacts/${appId}/public/data/app_drivers`), driverData);
+                e.target.reset(); 
+            } catch (error) {
+                console.error(`Error adding driver:`, error);
+            }
+        };
         
         const addCollectionItem = async (collectionName, value) => {
             if (!value) return;
@@ -318,7 +394,7 @@
             navLinks.forEach(link => link.addEventListener('click', (e) => { e.preventDefault(); showPage(e.target.dataset.page); }));
             mobileNavLinks.forEach(link => link.addEventListener('click', (e) => { e.preventDefault(); showPage(e.target.dataset.page); }));
 
-            document.getElementById('add-driver-form').addEventListener('submit', (e) => { e.preventDefault(); const input = e.target.querySelector('input'); addCollectionItem('app_drivers', input.value.trim()); e.target.reset(); });
+            document.getElementById('add-driver-form').addEventListener('submit', handleDriverFormSubmit);
             document.getElementById('add-location-form').addEventListener('submit', (e) => { e.preventDefault(); const input = e.target.querySelector('input'); addCollectionItem('app_locations', input.value.trim()); e.target.reset(); });
             document.getElementById('add-status-form').addEventListener('submit', (e) => { e.preventDefault(); const input = e.target.querySelector('input'); addCollectionItem('app_statuses', input.value.trim()); e.target.reset(); });
         };
@@ -327,7 +403,7 @@
         const setupRealtimeListeners = () => {
             const collections = {
                 containers: { stateVar: 'containers', renderFn: () => { renderContainers(); renderKPIs(); } },
-                app_drivers: { stateVar: 'drivers', renderFn: () => renderCollectionList('drivers-list', drivers, (id) => deleteCollectionItem('app_drivers', id)) },
+                app_drivers: { stateVar: 'drivers', renderFn: renderDriversList },
                 app_locations: { stateVar: 'locations', renderFn: () => { renderCollectionList('locations-list', locations, (id) => deleteCollectionItem('app_locations', id)); renderKPIs(); } },
                 app_statuses: { stateVar: 'statuses', renderFn: () => renderCollectionList('statuses-list', statuses, (id) => deleteCollectionItem('app_statuses', id)) }
             };
@@ -361,12 +437,13 @@
                 : JSON.stringify({
                     // FOR LOCAL TESTING: Replace with your actual Firebase config object to connect to your database.
                     apiKey: "AIzaSyD5pCrKNq3hcJleuUmMFTCU2wi2_L_EHH8",
-                    authDomain: "containers-79130.firebaseapp.com",
-                    projectId: "containers-79130",
-                    storageBucket: "containers-79130.firebasestorage.app",
-                    messagingSenderId: "299184337314",
-                    appId: "1:299184337314:web:f7ddea3f3fee565d30c2fb",
-                    measurementId: "G-R7ZQ0HKM6Y"
+  authDomain: "containers-79130.firebaseapp.com",
+  projectId: "containers-79130",
+  storageBucket: "containers-79130.firebasestorage.app",
+  messagingSenderId: "299184337314",
+  appId: "1:299184337314:web:f7ddea3f3fee565d30c2fb",
+  measurementId: "G-R7ZQ0HKM6Y"
+
                 });
 
             const firebaseConfig = JSON.parse(firebaseConfigJSON);
@@ -415,5 +492,6 @@
     </script>
 </body>
 </html>
+
 
 
