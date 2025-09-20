@@ -48,7 +48,7 @@ const formatTimeAgo = (dateString) => {
 const updateDateTime = () => {
     const el = document.getElementById('current-datetime');
     // Set to the specific date and time as requested.
-    const now = new Date('2025-09-19T16:13:00');
+    const now = new Date('2025-09-20T09:11:00');
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'America/Halifax' };
     el.textContent = now.toLocaleDateString('en-CA', options) + " (Dartmouth, NS)";
 };
@@ -121,10 +121,10 @@ const renderDriversList = () => {
                     <p class="text-xs text-gray-500">ID: ${driver.idNumber} | Plate: ${driver.plate} | Tare: ${driver.weight}kg</p>
                 </div>
                 <div class="flex items-center flex-shrink-0 ml-2">
-                    <button data-collection="app_drivers" data-id="${driver.id}" class="edit-item-btn text-gray-400 hover:text-blue-500 p-1">
+                    <button data-collection="drivers" data-id="${driver.id}" class="edit-item-btn text-gray-400 hover:text-blue-500 p-1">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>
                     </button>
-                    <button data-collection="app_drivers" data-id="${driver.id}" class="delete-item-btn text-gray-400 hover:text-red-500 p-1">
+                    <button data-collection="drivers" data-id="${driver.id}" class="delete-item-btn text-gray-400 hover:text-red-500 p-1">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
                     </button>
                 </div>
@@ -191,10 +191,10 @@ const openEditModal = (collection, id) => {
     editModalTitle.textContent = `Edit ${collection.replace('app_', '').slice(0, -1)}`;
 
     // Find the item and build the form based on the collection
-    if (collection === 'app_drivers') {
+    if (collection === 'drivers') {
         item = drivers.find(d => d.id === id);
         formHtml = `
-            <input type="hidden" name="collection" value="app_drivers">
+            <input type="hidden" name="collection" value="drivers">
             <input type="hidden" name="id" value="${item.id}">
             <div class="space-y-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -205,7 +205,7 @@ const openEditModal = (collection, id) => {
                 </div>
             </div>`;
     } else { // For locations and statuses
-        item = collection === 'app_locations' ? locations.find(i => i.id === id) : statuses.find(i => i.id === id);
+        item = collection === 'locations' ? locations.find(i => i.id === id) : statuses.find(i => i.id === id);
         formHtml = `
             <input type="hidden" name="collection" value="${collection}">
             <input type="hidden" name="id" value="${item.id}">
@@ -267,7 +267,7 @@ const handleDriverFormSubmit = async (e) => {
     const driverData = { name, idNumber, plate, weight: Number(weight) };
 
     try {
-        await addDoc(collection(db, `/artifacts/${window.appId}/public/data/app_drivers`), driverData);
+        await addDoc(collection(db, `/artifacts/${window.appId}/public/data/drivers`), driverData);
         e.target.reset(); 
     } catch (error) {
         console.error(`Error adding driver:`, error);
@@ -346,17 +346,17 @@ const setupEventListeners = () => {
     mobileNavLinks.forEach(link => link.addEventListener('click', (e) => { e.preventDefault(); showPage(e.target.dataset.page); }));
 
     document.getElementById('add-driver-form').addEventListener('submit', handleDriverFormSubmit);
-    document.getElementById('add-location-form').addEventListener('submit', (e) => { e.preventDefault(); const input = e.target.querySelector('input'); addCollectionItem('app_locations', input.value.trim()); e.target.reset(); });
-    document.getElementById('add-status-form').addEventListener('submit', (e) => { e.preventDefault(); const input = e.target.querySelector('input'); addCollectionItem('app_statuses', input.value.trim()); e.target.reset(); });
+    document.getElementById('add-location-form').addEventListener('submit', (e) => { e.preventDefault(); const input = e.target.querySelector('input'); addCollectionItem('locations', input.value.trim()); e.target.reset(); });
+    document.getElementById('add-status-form').addEventListener('submit', (e) => { e.preventDefault(); const input = e.target.querySelector('input'); addCollectionItem('statuses', input.value.trim()); e.target.reset(); });
 };
 
 // --- FIREBASE INITIALIZATION & DATA SYNC ---
 const setupRealtimeListeners = () => {
     const collections = {
         containers: { stateVar: 'containers', renderFn: () => { renderContainers(); renderKPIs(); } },
-        app_drivers: { stateVar: 'drivers', renderFn: renderDriversList },
-        app_locations: { stateVar: 'locations', renderFn: () => renderCollectionList('locations-list', locations, 'app_locations') },
-        app_statuses: { stateVar: 'statuses', renderFn: () => renderCollectionList('statuses-list', statuses, 'app_statuses') }
+        drivers: { stateVar: 'drivers', renderFn: renderDriversList },
+        locations: { stateVar: 'locations', renderFn: () => renderCollectionList('locations-list', locations, 'locations') },
+        statuses: { stateVar: 'statuses', renderFn: () => renderCollectionList('statuses-list', statuses, 'statuses') }
     };
 
     for (const [colName, config] of Object.entries(collections)) {
