@@ -23,6 +23,16 @@ const navLinks = document.querySelectorAll('.nav-link');
 const mobileNavLinks = document.querySelectorAll('.mobile-nav-link');
 const pages = document.querySelectorAll('.page-content');
 
+// Booking Modal Elements
+const addBookingBtn = document.getElementById('addBookingBtn');
+const bookingModal = document.getElementById('booking-modal');
+const bookingModalTitle = document.getElementById('booking-modal-title');
+const bookingCancelBtn = document.getElementById('booking-cancel-btn');
+const bookingSaveBtn = document.getElementById('booking-save-btn');
+const bookingForm = document.getElementById('booking-form');
+const bookingsGridBody = document.getElementById('bookings-grid-body');
+const noBookingsMessage = document.getElementById('no-bookings-message');
+
 // Edit Modal Elements
 const editModal = document.getElementById('edit-modal');
 const editModalTitle = document.getElementById('edit-modal-title');
@@ -47,7 +57,7 @@ const formatTimeAgo = (dateString) => {
 
 const updateDateTime = () => {
     const el = document.getElementById('current-datetime');
-    const now = new Date('2025-09-20T10:39:00'); // User-specified time
+    const now = new Date('2025-09-20T10:45:00'); // User-specified time
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'America/Halifax' };
     el.textContent = now.toLocaleDateString('en-CA', options) + " (Dartmouth, NS)";
 };
@@ -107,6 +117,53 @@ const renderKPIs = () => {
     });
 };
 
+const renderLogisticsKPIs = () => {
+    const kpiContainer = document.getElementById('logistics-kpi-cards');
+    if (!kpiContainer) return;
+
+    const totalBookings = bookings.length;
+    const totalQtyNeeded = bookings.reduce((sum, b) => sum + (b.qty || 0), 0);
+    const totalAssigned = bookings.reduce((sum, b) => sum + (b.assignedContainers?.length || 0), 0);
+    const pending = totalQtyNeeded - totalAssigned;
+
+    kpiContainer.innerHTML = `
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200"><h3 class="text-sm font-medium text-gray-500">Total Bookings</h3><p class="text-3xl font-bold mt-2">${totalBookings}</p></div>
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200"><h3 class="text-sm font-medium text-gray-500">Containers Needed</h3><p class="text-3xl font-bold mt-2 text-red-600">${totalQtyNeeded}</p></div>
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200"><h3 class="text-sm font-medium text-gray-500">Containers Assigned</h3><p class="text-3xl font-bold mt-2 text-green-600">${totalAssigned}</p></div>
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200"><h3 class="text-sm font-medium text-gray-500">Pending Assignments</h3><p class="text-3xl font-bold mt-2 text-amber-600">${pending}</p></div>
+    `;
+};
+
+
+const renderBookingsGrid = () => {
+    bookingsGridBody.innerHTML = '';
+    if (bookings.length === 0) {
+        noBookingsMessage.classList.remove('hidden');
+        noBookingsMessage.querySelector('p').textContent = 'No bookings found. Click "Add New Booking" to get started.';
+    } else {
+        noBookingsMessage.classList.add('hidden');
+        bookings.forEach(b => {
+            const assignedCount = b.assignedContainers?.length || 0;
+            const inProcessCount = 0; // Placeholder for future logic
+            const row = document.createElement('tr');
+            row.className = 'bg-white border-b hover:bg-gray-50';
+            row.innerHTML = `
+                <td class="px-6 py-4 font-semibold text-gray-900">${b.number}</td>
+                <td class="px-6 py-4">${b.type}</td>
+                <td class="px-6 py-4">${b.deadline || 'N/A'}</td>
+                <td class="px-6 py-4 text-center font-medium text-green-600">${assignedCount}</td>
+                <td class="px-6 py-4 text-center font-medium text-gray-700">${b.qty}</td>
+                <td class="px-6 py-4 text-center font-medium text-amber-600">${inProcessCount}</td>
+                <td class="px-6 py-4 text-center">
+                    <button data-collection="bookings" data-id="${b.id}" class="edit-item-btn font-medium text-blue-600 hover:underline">Edit</button>
+                    <button data-collection="bookings" data-id="${b.id}" class="delete-item-btn font-medium text-red-600 hover:underline ml-4">Delete</button>
+                </td>
+            `;
+            bookingsGridBody.appendChild(row);
+        });
+    }
+};
+
 const renderDriversList = () => {
     const listElement = document.getElementById('drivers-list');
     listElement.innerHTML = '';
@@ -151,26 +208,6 @@ const renderStatusesList = () => {
     });
 };
 
-const renderBookingsList = () => {
-    const listElement = document.getElementById('bookings-list');
-    listElement.innerHTML = '';
-    bookings.forEach(booking => {
-        const li = document.createElement('li');
-        li.className = 'bg-white p-3 rounded-md border border-gray-200 shadow-sm cursor-pointer hover:bg-blue-50 hover:border-blue-300';
-        li.dataset.bookingId = booking.id;
-        li.innerHTML = `
-            <div class="flex justify-between items-start pointer-events-none">
-                <div><p class="font-semibold text-gray-900">${booking.number}</p><p class="text-xs text-gray-500">QTY: ${booking.qty} | Type: ${booking.type}</p></div>
-                <div class="flex items-center flex-shrink-0 ml-2 pointer-events-auto">
-                    <button data-collection="bookings" data-id="${booking.id}" class="edit-item-btn text-gray-400 hover:text-blue-500 p-1"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg></button>
-                    <button data-collection="bookings" data-id="${booking.id}" class="delete-item-btn text-gray-400 hover:text-red-500 p-1"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button>
-                </div>
-            </div>`;
-        listElement.appendChild(li);
-    });
-};
-
-
 const renderCollectionList = (elementId, items, collectionName) => {
     const listElement = document.getElementById(elementId);
     listElement.innerHTML = '';
@@ -202,9 +239,6 @@ const populateDropdowns = () => {
     document.getElementById('container-location').innerHTML = createOptions(locations, 'name');
     document.getElementById('container-status').innerHTML = createStatusOptions(statuses);
     document.getElementById('container-driver').innerHTML = '<option value="Unassigned">Unassigned</option>' + createOptions(drivers, 'name');
-    
-    // Also populate booking form dropdown
-    document.getElementById('booking-type').innerHTML = createOptions(containerTypes, 'name');
 };
 
 const openModal = (containerId = null) => {
@@ -229,7 +263,32 @@ const openModal = (containerId = null) => {
 };
 const closeModal = () => modal.classList.add('hidden');
 
+const openBookingModal = (bookingId = null) => {
+    bookingForm.reset();
+    document.getElementById('booking-form-type').innerHTML = containerTypes.map(item => `<option value="${item.name}">${item.name}</option>`).join('');
+
+    if (bookingId) {
+        const booking = bookings.find(b => b.id === bookingId);
+        bookingModalTitle.textContent = 'Edit Booking';
+        document.getElementById('booking-id-input').value = booking.id;
+        document.getElementById('booking-form-number').value = booking.number;
+        document.getElementById('booking-form-qty').value = booking.qty;
+        document.getElementById('booking-form-deadline').value = booking.deadline;
+        document.getElementById('booking-form-type').value = booking.type;
+    } else {
+        bookingModalTitle.textContent = 'Add New Booking';
+        document.getElementById('booking-id-input').value = '';
+    }
+    bookingModal.classList.remove('hidden');
+};
+const closeBookingModal = () => bookingModal.classList.add('hidden');
+
 const openEditModal = (collection, id) => {
+    if (collection === 'bookings') {
+        openBookingModal(id);
+        return;
+    }
+
     let item;
     let formHtml = '';
     editModalTitle.textContent = `Edit ${collection.slice(0, -1)}`;
@@ -243,17 +302,6 @@ const openEditModal = (collection, id) => {
     } else if (collection === 'chassis') {
         item = chassis.find(i => i.id === id);
         formHtml = `...`; // Redacted for brevity
-    } else if (collection === 'bookings') {
-        item = bookings.find(i => i.id === id);
-        const typeOptions = containerTypes.map(t => `<option value="${t.name}" ${t.name === item.type ? 'selected' : ''}>${t.name}</option>`).join('');
-        formHtml = `
-            <input type="hidden" name="collection" value="bookings">
-            <input type="hidden" name="id" value="${item.id}">
-            <div class="space-y-4">
-                <div><label class="block text-sm font-medium">Booking Number</label><input type="text" name="number" value="${item.number}" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md" required></div>
-                <div><label class="block text-sm font-medium">Quantity</label><input type="number" name="qty" value="${item.qty}" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md" required></div>
-                <div><label class="block text-sm font-medium">Container Type</label><select name="type" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md" required>${typeOptions}</select></div>
-            </div>`;
     } else { // For locations and containerTypes
         item = collection === 'locations' ? locations.find(i => i.id === id) : containerTypes.find(i => i.id === id);
         formHtml = `...`; // Redacted for brevity
@@ -330,14 +378,34 @@ const handleStatusFormSubmit = async (e) => {
 
 const handleBookingFormSubmit = async (e) => {
     e.preventDefault();
-    const number = document.getElementById('booking-number').value.trim().toUpperCase();
-    const qty = document.getElementById('booking-qty').value;
-    const type = document.getElementById('booking-type').value;
+    const idInput = document.getElementById('booking-id-input').value;
+    const number = document.getElementById('booking-form-number').value.trim().toUpperCase();
+    const qty = document.getElementById('booking-form-qty').value;
+    const type = document.getElementById('booking-form-type').value;
+    const deadline = document.getElementById('booking-form-deadline').value;
 
-    if (!number || !qty || !type) { console.error("All booking fields are required."); return; }
-    const bookingData = { number, qty: Number(qty), type, assignedContainers: [] };
-    try { await addDoc(collection(db, `/artifacts/${window.appId}/public/data/bookings`), bookingData); e.target.reset(); } catch (error) { console.error('Error adding booking:', error); }
+    if (!number || !qty || !type || !deadline) { console.error("All booking fields are required."); return; }
+    
+    const bookingData = { 
+        number, 
+        qty: Number(qty), 
+        type, 
+        deadline 
+    };
+
+    try {
+        if (idInput) {
+            await updateDoc(doc(db, `/artifacts/${window.appId}/public/data/bookings`, idInput), bookingData);
+        } else {
+            bookingData.assignedContainers = [];
+            await addDoc(collection(db, `/artifacts/${window.appId}/public/data/bookings`), bookingData);
+        }
+        closeBookingModal();
+    } catch (error) {
+        console.error('Error saving booking:', error);
+    }
 };
+
 
 const handleEditFormSubmit = async (e) => {
     e.preventDefault();
@@ -383,6 +451,12 @@ const setupEventListeners = () => {
     saveBtn.addEventListener('click', () => containerForm.requestSubmit());
     tableBody.addEventListener('click', (e) => { if (e.target.classList.contains('edit-btn')) openModal(e.target.dataset.id); });
 
+    addBookingBtn.addEventListener('click', () => openBookingModal());
+    bookingCancelBtn.addEventListener('click', closeBookingModal);
+    bookingModal.addEventListener('click', (e) => { if (e.target === bookingModal) closeBookingModal(); });
+    bookingForm.addEventListener('submit', handleBookingFormSubmit);
+    bookingSaveBtn.addEventListener('click', () => bookingForm.requestSubmit());
+
     editCancelBtn.addEventListener('click', closeEditModal);
     editModal.addEventListener('click', (e) => { if (e.target === editModal) closeEditModal(); });
     editItemForm.addEventListener('submit', handleEditFormSubmit);
@@ -410,19 +484,18 @@ const setupEventListeners = () => {
     document.getElementById('add-location-form').addEventListener('submit', (e) => { e.preventDefault(); const input = e.target.querySelector('input'); addCollectionItem('locations', input.value.trim()); e.target.reset(); });
     document.getElementById('add-status-form').addEventListener('submit', handleStatusFormSubmit);
     document.getElementById('add-container-type-form').addEventListener('submit', (e) => { e.preventDefault(); const input = e.target.querySelector('input'); addCollectionItem('containerTypes', input.value.trim()); e.target.reset(); });
-    document.getElementById('add-booking-form').addEventListener('submit', handleBookingFormSubmit);
 };
 
 // --- FIREBASE INITIALIZATION & DATA SYNC ---
 const setupRealtimeListeners = () => {
     const collections = {
-        containers: { stateVar: 'containers', renderFn: () => { renderContainers(); renderKPIs(); } },
+        containers: { stateVar: 'containers', renderFn: () => { renderContainers(); renderKPIs(); renderLogisticsKPIs(); } },
         drivers: { stateVar: 'drivers', renderFn: renderDriversList },
         chassis: { stateVar: 'chassis', renderFn: renderChassisList },
         locations: { stateVar: 'locations', renderFn: () => renderCollectionList('locations-list', locations, 'locations') },
         statuses: { stateVar: 'statuses', renderFn: renderStatusesList },
         containerTypes: { stateVar: 'containerTypes', renderFn: () => { renderCollectionList('container-types-list', containerTypes, 'containerTypes'); populateDropdowns(); } },
-        bookings: { stateVar: 'bookings', renderFn: renderBookingsList }
+        bookings: { stateVar: 'bookings', renderFn: () => { renderBookingsGrid(); renderLogisticsKPIs(); } }
     };
 
     for (const [colName, config] of Object.entries(collections)) {
@@ -430,7 +503,7 @@ const setupRealtimeListeners = () => {
             const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             
             if (colName === 'statuses') { data.sort((a,b) => a.description.localeCompare(b.description)); } 
-            else if (colName === 'bookings') { data.sort((a,b) => a.number.localeCompare(b.number)); }
+            else if (colName === 'bookings') { data.sort((a,b) => (b.deadline || '').localeCompare(a.deadline || '')); }
             else if (data.every(item => item.name)) { data.sort((a,b) => a.name.localeCompare(b.name)); }
 
             if (config.stateVar === 'containers') containers = data.sort((a,b) => (b.lastUpdated || '').localeCompare(a.lastUpdated || ''));
@@ -483,3 +556,4 @@ document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
     initFirebase();
 });
+
