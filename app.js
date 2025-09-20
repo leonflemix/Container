@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, setLogLevel, arrayUnion } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // --- GLOBAL STATE ---
 let containers = [], drivers = [], locations = [], statuses = [], chassis = [], containerTypes = [], bookings = [], collections = [];
@@ -42,6 +42,13 @@ const collectionSaveBtn = document.getElementById('collection-save-btn');
 const collectionsGridBody = document.getElementById('collections-grid-body');
 const noCollectionsMessage = document.getElementById('no-collections-message');
 
+// Collect Modal Elements
+const collectModal = document.getElementById('collect-modal');
+const collectForm = document.getElementById('collect-form');
+const collectCancelBtn = document.getElementById('collect-cancel-btn');
+const collectSaveBtn = document.getElementById('collect-save-btn');
+
+
 // Edit Modal Elements
 const editModal = document.getElementById('edit-modal');
 const editModalTitle = document.getElementById('edit-modal-title');
@@ -72,7 +79,7 @@ const formatTimestamp = (dateString) => {
 
 const updateDateTime = () => {
     const el = document.getElementById('current-datetime');
-    const now = new Date('2025-09-20T11:54:00'); // User-specified time
+    const now = new Date('2025-09-20T12:07:00'); // User-specified time
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'America/Halifax' };
     el.textContent = now.toLocaleDateString('en-CA', options) + " (Dartmouth, NS)";
 };
@@ -219,11 +226,11 @@ const renderCollectionsGrid = () => {
 }
 
 const renderDriverDashboard = () => {
-    const container = document.getElementById('driver-collections-container');
-    container.innerHTML = '';
+    const containerEl = document.getElementById('driver-collections-container');
+    containerEl.innerHTML = '';
 
     if (collections.length === 0) {
-        container.innerHTML = '<div class="text-center py-12 text-gray-500"><p>No collections assigned to drivers yet.</p></div>';
+        containerEl.innerHTML = '<div class="text-center py-12 text-gray-500"><p>No collections assigned to drivers yet.</p></div>';
         return;
     }
 
@@ -251,23 +258,29 @@ const renderDriverDashboard = () => {
             <thead class="bg-gray-50 text-xs text-gray-700 uppercase">
                 <tr>
                     <th scope="col" class="px-6 py-3">Booking #</th>
-                    <th scope="col" class="px-6 py-3">Chassis</th>
-                    <th scope="col" class="px-6 py-3 text-center">Qty</th>
-                    <th scope="col" class="px-6 py-3">Size</th>
-                    <th scope="col" class="px-6 py-3">Timestamp</th>
+                    <th scope="col" class="px-6 py-3">Type</th>
+                    <th scope="col" class="px-6 py-3">Status</th>
+                    <th scope="col" class="px-6 py-3">Location</th>
+                    <th scope="col" class="px-6 py-3 text-center">Actions</th>
                 </tr>
             </thead>
         `;
         const tbody = document.createElement('tbody');
         collectionsByDriver[driverName].forEach(c => {
+            const booking = bookings.find(b => b.id === c.bookingId);
+            const collectedCount = c.collectedContainers?.length || 0;
+            const canCollect = collectedCount < c.qty;
+
             const row = document.createElement('tr');
             row.className = 'bg-white border-b hover:bg-gray-50';
             row.innerHTML = `
                 <td class="px-6 py-4">${c.bookingNumber}</td>
+                <td class="px-6 py-4">${booking?.type || 'N/A'}</td>
+                <td class="px-6 py-4">${getStatusBadge(c.status)}</td>
                 <td class="px-6 py-4">${c.chassisName}</td>
-                <td class="px-6 py-4 text-center font-medium">${c.qty}</td>
-                <td class="px-6 py-4">${c.containerSize}</td>
-                <td class="px-6 py-4 text-gray-500">${formatTimestamp(c.createdAt)}</td>
+                <td class="px-6 py-4 text-center">
+                    ${canCollect ? `<button data-collection-id="${c.id}" class="collect-btn bg-green-500 text-white font-semibold py-1 px-3 rounded-md hover:bg-green-600 text-xs">Collect</button>` : `<span class="text-gray-400 text-xs">Complete</span>`}
+                </td>
             `;
             tbody.appendChild(row);
         });
@@ -275,7 +288,7 @@ const renderDriverDashboard = () => {
         table.appendChild(tbody);
         tableContainer.appendChild(table);
         driverSection.appendChild(tableContainer);
-        container.appendChild(driverSection);
+        containerEl.appendChild(driverSection);
     }
 };
 
@@ -408,6 +421,13 @@ const openCollectionModal = () => {
     collectionModal.classList.remove('hidden');
 };
 const closeCollectionModal = () => collectionModal.classList.add('hidden');
+
+const openCollectModal = (collectionId) => {
+    collectForm.reset();
+    document.getElementById('collection-id-input').value = collectionId;
+    collectModal.classList.remove('hidden');
+};
+const closeCollectModal = () => collectModal.classList.add('hidden');
 
 const openEditModal = (collection, id) => {
     if (collection === 'bookings') {
@@ -561,7 +581,9 @@ const handleCollectionFormSubmit = async (e) => {
         chassisName: selectedChassis?.name,
         qty,
         containerSize: booking?.containerSize,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        status: '📦🚚COLLECTING FROM PIER',
+        collectedContainers: []
     };
     
     try {
@@ -572,6 +594,56 @@ const handleCollectionFormSubmit = async (e) => {
     }
 };
 
+const handleCollectFormSubmit = async (e) => {
+    e.preventDefault();
+    const collectionId = document.getElementById('collection-id-input').value;
+    const containerNumber = document.getElementById('container-number').value.trim().toUpperCase();
+    const tare = document.getElementById('container-tare').value;
+
+    if (!collectionId || !containerNumber || !tare) {
+        console.error("All fields are required to collect a container.");
+        return;
+    }
+
+    const parentCollection = collections.find(c => c.id === collectionId);
+    const parentBooking = bookings.find(b => b.id === parentCollection.bookingId);
+
+    const newContainerData = {
+        serial: containerNumber,
+        tare: Number(tare),
+        type: parentBooking.type,
+        status: '📦🚚COLLECTED FROM PIER',
+        location: parentCollection.chassisName,
+        driver: parentCollection.driverName,
+        bookingNumber: parentCollection.bookingNumber,
+        lastUpdated: new Date().toISOString()
+    };
+
+    try {
+        // 1. Create the new container record
+        const containerRef = await addDoc(collection(db, `/artifacts/${window.appId}/public/data/containers`), newContainerData);
+
+        // 2. Update the parent collection
+        const updatedCollectedContainers = [...(parentCollection.collectedContainers || []), { containerId: containerRef.id, containerSerial: containerNumber }];
+        let newStatus = parentCollection.status;
+        if (updatedCollectedContainers.length >= parentCollection.qty) {
+            newStatus = 'Collection Complete';
+        }
+        await updateDoc(doc(db, `/artifacts/${window.appId}/public/data/collections`, collectionId), {
+            collectedContainers: updatedCollectedContainers,
+            status: newStatus
+        });
+
+        // 3. Update the parent booking
+        await updateDoc(doc(db, `/artifacts/${window.appId}/public/data/bookings`, parentCollection.bookingId), {
+            assignedContainers: arrayUnion(containerRef.id)
+        });
+
+        closeCollectModal();
+    } catch (error) {
+        console.error("Error submitting collection:", error);
+    }
+};
 
 const handleEditFormSubmit = async (e) => {
     e.preventDefault();
@@ -675,6 +747,17 @@ const setupEventListeners = () => {
         document.getElementById(id).addEventListener('change', validateCollectionForm);
     });
 
+    collectCancelBtn.addEventListener('click', closeCollectModal);
+    collectModal.addEventListener('click', (e) => { if(e.target === collectModal) closeCollectModal(); });
+    collectForm.addEventListener('submit', handleCollectFormSubmit);
+    collectSaveBtn.addEventListener('click', () => collectForm.requestSubmit());
+
+    document.getElementById('driver-collections-container').addEventListener('click', (e) => {
+        if(e.target.classList.contains('collect-btn')) {
+            openCollectModal(e.target.dataset.collectionId);
+        }
+    });
+
     editCancelBtn.addEventListener('click', closeEditModal);
     editModal.addEventListener('click', (e) => { if (e.target === editModal) closeEditModal(); });
     editItemForm.addEventListener('submit', handleEditFormSubmit);
@@ -713,7 +796,7 @@ const setupRealtimeListeners = () => {
         locations: { stateVar: 'locations', renderFn: () => renderCollectionList('locations-list', locations, 'locations') },
         statuses: { stateVar: 'statuses', renderFn: renderStatusesList },
         containerTypes: { stateVar: 'containerTypes', renderFn: () => { renderCollectionList('container-types-list', containerTypes, 'containerTypes'); populateDropdowns(); } },
-        bookings: { stateVar: 'bookings', renderFn: () => { renderBookingsGrid(); renderLogisticsKPIs(); } },
+        bookings: { stateVar: 'bookings', renderFn: () => { renderBookingsGrid(); renderLogisticsKPIs(); renderDriverDashboard(); } },
         collections: { stateVar: 'collections', renderFn: () => { renderCollectionsGrid(); renderDriverDashboard(); renderDriversKPIs(); } }
     };
 
