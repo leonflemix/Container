@@ -47,8 +47,7 @@ const formatTimeAgo = (dateString) => {
 
 const updateDateTime = () => {
     const el = document.getElementById('current-datetime');
-    // Set to the specific date and time as requested.
-    const now = new Date('2025-09-20T09:11:00');
+    const now = new Date('2025-09-20T09:18:00');
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'America/Halifax' };
     el.textContent = now.toLocaleDateString('en-CA', options) + " (Dartmouth, NS)";
 };
@@ -133,6 +132,29 @@ const renderDriversList = () => {
     });
 };
 
+const renderStatusesList = () => {
+    const listElement = document.getElementById('statuses-list');
+    listElement.innerHTML = '';
+    statuses.forEach(status => {
+        const li = document.createElement('li');
+        li.className = 'bg-gray-50 p-3 rounded-md border border-gray-200 flex justify-between items-center';
+        li.innerHTML = `
+            <div>
+                <span class="text-xl mr-3">${status.emoji}</span>
+                <span class="font-medium text-gray-800">${status.description}</span>
+            </div>
+            <div class="flex items-center flex-shrink-0 ml-2">
+                <button data-collection="statuses" data-id="${status.id}" class="edit-item-btn text-gray-400 hover:text-blue-500 p-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>
+                </button>
+                <button data-collection="statuses" data-id="${status.id}" class="delete-item-btn text-gray-400 hover:text-red-500 p-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
+                </button>
+            </div>`;
+        listElement.appendChild(li);
+    });
+};
+
 const renderCollectionList = (elementId, items, collectionName) => {
     const listElement = document.getElementById(elementId);
     listElement.innerHTML = '';
@@ -154,14 +176,22 @@ const renderCollectionList = (elementId, items, collectionName) => {
 
 // --- STYLING HELPERS ---
 const getLocationIcon = (location) => { let i,c; switch(location) { case 'Pier': i=`<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path d="M2 5a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2V5zm14 1a1 1 0 10-2 0v2a1 1 0 102 0V6zM4 5a1 1 0 100 2h12V5H4z"/><path d="M18 11a2 2 0 01-2 2H4a2 2 0 01-2-2v-1a1 1 0 011-1h14a1 1 0 011 1v1z"/></svg>`; c='text-sky-600'; break; case 'Yard': i=`<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 11-2 0V4H6v12a1 1 0 11-2 0V4zm4 4a1 1 0 100 2h4a1 1 0 100-2H8zm0 4a1 1 0 100 2h4a1 1 0 100-2H8z" clip-rule="evenodd" /></svg>`; c='text-amber-600'; break; case 'IH Mathers': i=`<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm12 2H4v8h12V6z" clip-rule="evenodd" /><path d="M11 9a1 1 0 10-2 0v2a1 1 0 102 0V9z"/></svg>`; c='text-indigo-600'; break; case 'In Transit': i=`<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" /><path d="M3 4a1 1 0 00-1 1v8a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM6 7h4v4H6V7z" /><path d="M12 4a1 1 0 00-1 1v8a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H18a1 1 0 001-1V5a1 1 0 00-1-1h-6zM14 7h4v4h-4V7z" /></svg>`; c='text-gray-500'; break; default: i=`<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>`; c='text-green-600'; } return `<div class="flex items-center ${c}">${i}<span>${location}</span></div>`; };
-const getStatusBadge = (status) => { const base = 'px-2.5 py-0.5 rounded-full font-medium text-xs inline-block'; const map = {'Available':'bg-green-100 text-green-800','Loading':'bg-yellow-100 text-yellow-800','Awaiting Pickup':'bg-blue-100 text-blue-800','Out for Delivery':'bg-purple-100 text-purple-800','Empty':'bg-gray-100 text-gray-800'}; return `<span class="${map[status] || 'bg-gray-200'} ${base}">${status}</span>`; };
+const getStatusBadge = (statusDescription) => {
+    const statusObj = statuses.find(s => s.description === statusDescription);
+    if (statusObj) {
+        return `<div class="flex items-center"><span class="text-lg mr-2">${statusObj.emoji}</span><span>${statusObj.description}</span></div>`;
+    }
+    return `<span>${statusDescription || 'N/A'}</span>`; // Fallback
+};
 
 // --- MODAL HANDLING ---
 const populateDropdowns = () => {
-    const createOptions = (data) => data.map(item => `<option value="${item.name}">${item.name}</option>`).join('');
-    document.getElementById('container-location').innerHTML = createOptions(locations);
-    document.getElementById('container-status').innerHTML = createOptions(statuses);
-    document.getElementById('container-driver').innerHTML = '<option value="Unassigned">Unassigned</option>' + createOptions(drivers);
+    const createOptions = (data, valueKey, textKey) => data.map(item => `<option value="${item[valueKey]}">${textKey ? item[textKey] : item[valueKey]}</option>`).join('');
+    const createStatusOptions = (data) => data.map(item => `<option value="${item.description}">${item.emoji} ${item.description}</option>`).join('');
+
+    document.getElementById('container-location').innerHTML = createOptions(locations, 'name');
+    document.getElementById('container-status').innerHTML = createStatusOptions(statuses);
+    document.getElementById('container-driver').innerHTML = '<option value="Unassigned">Unassigned</option>' + createOptions(drivers, 'name');
 };
 
 const openModal = (containerId = null) => {
@@ -188,9 +218,8 @@ const closeModal = () => modal.classList.add('hidden');
 const openEditModal = (collection, id) => {
     let item;
     let formHtml = '';
-    editModalTitle.textContent = `Edit ${collection.replace('app_', '').slice(0, -1)}`;
+    editModalTitle.textContent = `Edit ${collection.slice(0, -1)}`;
 
-    // Find the item and build the form based on the collection
     if (collection === 'drivers') {
         item = drivers.find(d => d.id === id);
         formHtml = `
@@ -204,8 +233,23 @@ const openEditModal = (collection, id) => {
                     <div><label class="block text-sm font-medium">Tare Weight (kg)</label><input type="number" name="weight" value="${item.weight}" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md" required></div>
                 </div>
             </div>`;
-    } else { // For locations and statuses
-        item = collection === 'locations' ? locations.find(i => i.id === id) : statuses.find(i => i.id === id);
+    } else if (collection === 'statuses') {
+        item = statuses.find(i => i.id === id);
+        formHtml = `
+            <input type="hidden" name="collection" value="statuses">
+            <input type="hidden" name="id" value="${item.id}">
+            <div class="flex items-end gap-2">
+                <div class="w-1/4">
+                    <label class="block text-sm font-medium">Emoji</label>
+                    <input type="text" name="emoji" value="${item.emoji}" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md" required>
+                </div>
+                <div class="flex-grow">
+                    <label class="block text-sm font-medium">Description</label>
+                    <input type="text" name="description" value="${item.description}" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md" required>
+                </div>
+            </div>`;
+    } else { // For locations
+        item = locations.find(i => i.id === id);
         formHtml = `
             <input type="hidden" name="collection" value="${collection}">
             <input type="hidden" name="id" value="${item.id}">
@@ -274,6 +318,23 @@ const handleDriverFormSubmit = async (e) => {
     }
 };
 
+const handleStatusFormSubmit = async (e) => {
+    e.preventDefault();
+    const emoji = document.getElementById('new-status-emoji').value.trim();
+    const description = document.getElementById('new-status-description').value.trim();
+    if (!emoji || !description) {
+        console.error("Emoji and Description are required for statuses.");
+        return;
+    }
+    const statusData = { emoji, description };
+    try {
+        await addDoc(collection(db, `/artifacts/${window.appId}/public/data/statuses`), statusData);
+        e.target.reset();
+    } catch (error) {
+        console.error('Error adding status:', error);
+    }
+};
+
 const handleEditFormSubmit = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
@@ -281,10 +342,8 @@ const handleEditFormSubmit = async (e) => {
     const collectionName = formData.get('collection');
     
     let updatedData = {};
-    // Build the data object from the form fields, excluding hidden inputs
     for (let [key, value] of formData.entries()) {
         if (key !== 'id' && key !== 'collection') {
-            // Convert 'weight' field to a number
             updatedData[key] = key === 'weight' ? Number(value) : value;
         }
     }
@@ -328,7 +387,6 @@ const setupEventListeners = () => {
     editItemForm.addEventListener('submit', handleEditFormSubmit);
     editSaveBtn.addEventListener('click', () => editItemForm.requestSubmit());
     
-    // Use event delegation for dynamically created edit/delete buttons
     document.getElementById('settings-page').addEventListener('click', (e) => {
         const target = e.target.closest('button');
         if (!target) return;
@@ -347,7 +405,7 @@ const setupEventListeners = () => {
 
     document.getElementById('add-driver-form').addEventListener('submit', handleDriverFormSubmit);
     document.getElementById('add-location-form').addEventListener('submit', (e) => { e.preventDefault(); const input = e.target.querySelector('input'); addCollectionItem('locations', input.value.trim()); e.target.reset(); });
-    document.getElementById('add-status-form').addEventListener('submit', (e) => { e.preventDefault(); const input = e.target.querySelector('input'); addCollectionItem('statuses', input.value.trim()); e.target.reset(); });
+    document.getElementById('add-status-form').addEventListener('submit', handleStatusFormSubmit);
 };
 
 // --- FIREBASE INITIALIZATION & DATA SYNC ---
@@ -356,13 +414,16 @@ const setupRealtimeListeners = () => {
         containers: { stateVar: 'containers', renderFn: () => { renderContainers(); renderKPIs(); } },
         drivers: { stateVar: 'drivers', renderFn: renderDriversList },
         locations: { stateVar: 'locations', renderFn: () => renderCollectionList('locations-list', locations, 'locations') },
-        statuses: { stateVar: 'statuses', renderFn: () => renderCollectionList('statuses-list', statuses, 'statuses') }
+        statuses: { stateVar: 'statuses', renderFn: renderStatusesList }
     };
 
     for (const [colName, config] of Object.entries(collections)) {
         onSnapshot(collection(db, `/artifacts/${window.appId}/public/data/${colName}`), (snapshot) => {
             const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            if (data.every(item => item.name)) {
+            
+            if (colName === 'statuses') {
+                data.sort((a,b) => a.description.localeCompare(b.description));
+            } else if (data.every(item => item.name)) {
                 data.sort((a,b) => a.name.localeCompare(b.name));
             }
 
@@ -379,7 +440,6 @@ const setupRealtimeListeners = () => {
 async function initFirebase() {
     setLogLevel('Debug');
     
-    // A simple check to prevent the app from crashing if the config isn't filled out for local testing.
     if (typeof window.firebaseConfig === 'undefined' || !window.firebaseConfig.projectId || window.firebaseConfig.projectId === "YOUR_PROJECT_ID") {
         console.error("Firebase config is missing or incomplete. Please add your Firebase config in firebase-config.js for local testing.");
         document.getElementById('no-containers-message').querySelector('p').textContent = 'Firebase is not configured. Please check firebase-config.js and see the browser console for instructions.';

@@ -112,7 +112,23 @@
                     <ul id="drivers-list" class="space-y-3"></ul>
                 </div>
                 <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200"><h2 class="text-lg font-semibold mb-4 border-b pb-2">Manage Locations</h2><form id="add-location-form" class="flex gap-2 mb-4"><input type="text" id="new-location-name" placeholder="New location name..." class="flex-grow w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" required><button type="submit" class="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700">Add</button></form><ul id="locations-list" class="space-y-2"></ul></div>
-                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200"><h2 class="text-lg font-semibold mb-4 border-b pb-2">Manage Statuses</h2><form id="add-status-form" class="flex gap-2 mb-4"><input type="text" id="new-status-name" placeholder="New status name..." class="flex-grow w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" required><button type="submit" class="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700">Add</button></form><ul id="statuses-list" class="space-y-2"></ul></div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+                    <h2 class="text-lg font-semibold mb-4 border-b pb-2">Manage Statuses</h2>
+                    <form id="add-status-form" class="space-y-4 mb-4">
+                        <div class="flex items-end gap-2">
+                            <div class="w-1/4">
+                                <label for="new-status-emoji" class="block text-sm font-medium text-gray-700">Emoji</label>
+                                <input type="text" id="new-status-emoji" placeholder="✅" maxlength="2" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" required>
+                            </div>
+                            <div class="flex-grow">
+                                <label for="new-status-description" class="block text-sm font-medium text-gray-700">Description</label>
+                                <input type="text" id="new-status-description" placeholder="Available" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-300">Add Status</button>
+                    </form>
+                    <ul id="statuses-list" class="space-y-3"></ul>
+                </div>
             </div>
         </div>
     </main>
