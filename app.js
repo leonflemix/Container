@@ -47,7 +47,7 @@ const formatTimeAgo = (dateString) => {
 
 const updateDateTime = () => {
     const el = document.getElementById('current-datetime');
-    const now = new Date('2025-09-20T10:18:00'); // User-specified time
+    const now = new Date('2025-09-20T10:39:00'); // User-specified time
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'America/Halifax' };
     el.textContent = now.toLocaleDateString('en-CA', options) + " (Dartmouth, NS)";
 };
@@ -156,15 +156,20 @@ const renderBookingsList = () => {
     listElement.innerHTML = '';
     bookings.forEach(booking => {
         const li = document.createElement('li');
-        li.className = 'bg-gray-50 p-3 rounded-md border border-gray-200';
+        li.className = 'bg-white p-3 rounded-md border border-gray-200 shadow-sm cursor-pointer hover:bg-blue-50 hover:border-blue-300';
+        li.dataset.bookingId = booking.id;
         li.innerHTML = `
-            <div class="flex justify-between items-start">
+            <div class="flex justify-between items-start pointer-events-none">
                 <div><p class="font-semibold text-gray-900">${booking.number}</p><p class="text-xs text-gray-500">QTY: ${booking.qty} | Type: ${booking.type}</p></div>
-                <div class="flex items-center flex-shrink-0 ml-2"><button data-collection="bookings" data-id="${booking.id}" class="edit-item-btn text-gray-400 hover:text-blue-500 p-1"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg></button><button data-collection="bookings" data-id="${booking.id}" class="delete-item-btn text-gray-400 hover:text-red-500 p-1"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button></div>
+                <div class="flex items-center flex-shrink-0 ml-2 pointer-events-auto">
+                    <button data-collection="bookings" data-id="${booking.id}" class="edit-item-btn text-gray-400 hover:text-blue-500 p-1"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg></button>
+                    <button data-collection="bookings" data-id="${booking.id}" class="delete-item-btn text-gray-400 hover:text-red-500 p-1"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button>
+                </div>
             </div>`;
         listElement.appendChild(li);
     });
 };
+
 
 const renderCollectionList = (elementId, items, collectionName) => {
     const listElement = document.getElementById(elementId);
@@ -330,7 +335,7 @@ const handleBookingFormSubmit = async (e) => {
     const type = document.getElementById('booking-type').value;
 
     if (!number || !qty || !type) { console.error("All booking fields are required."); return; }
-    const bookingData = { number, qty: Number(qty), type };
+    const bookingData = { number, qty: Number(qty), type, assignedContainers: [] };
     try { await addDoc(collection(db, `/artifacts/${window.appId}/public/data/bookings`), bookingData); e.target.reset(); } catch (error) { console.error('Error adding booking:', error); }
 };
 
@@ -478,4 +483,3 @@ document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
     initFirebase();
 });
-
