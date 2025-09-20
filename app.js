@@ -72,7 +72,7 @@ const formatTimestamp = (dateString) => {
 
 const updateDateTime = () => {
     const el = document.getElementById('current-datetime');
-    const now = new Date('2025-09-20T11:38:00'); // User-specified time
+    const now = new Date('2025-09-20T11:47:00'); // User-specified time
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'America/Halifax' };
     el.textContent = now.toLocaleDateString('en-CA', options) + " (Dartmouth, NS)";
 };
@@ -549,6 +549,10 @@ const validateCollectionForm = () => {
     qtyMsg.classList.add('hidden');
     if (qty === 2 && selectedChassis && !selectedChassis.is2x20) {
         qtyMsg.textContent = "This chassis cannot handle 2 containers.";
+        qtyMsg.classList.remove('hidden');
+        isValid = false;
+    } else if (size === '40ft' && qty > 1) {
+        qtyMsg.textContent = "Cannot have more than one 40ft container.";
         qtyMsg.classList.remove('hidden');
         isValid = false;
     }
