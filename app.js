@@ -625,10 +625,12 @@ const handleCollectFormSubmit = async (e) => {
 
         // 2. Update the parent collection
         const updatedCollectedContainers = [...(parentCollection.collectedContainers || []), { containerId: containerRef.id, containerSerial: containerNumber }];
-        let newStatus = parentCollection.status;
+        
+        let newStatus = '📦🚚COLLECTED FROM PIER';
         if (updatedCollectedContainers.length >= parentCollection.qty) {
             newStatus = 'Collection Complete';
         }
+
         await updateDoc(doc(db, `/artifacts/${window.appId}/public/data/collections`, collectionId), {
             collectedContainers: updatedCollectedContainers,
             status: newStatus
