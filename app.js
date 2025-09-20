@@ -72,7 +72,7 @@ const formatTimestamp = (dateString) => {
 
 const updateDateTime = () => {
     const el = document.getElementById('current-datetime');
-    const now = new Date('2025-09-20T11:47:00'); // User-specified time
+    const now = new Date('2025-09-20T11:54:00'); // User-specified time
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'America/Halifax' };
     el.textContent = now.toLocaleDateString('en-CA', options) + " (Dartmouth, NS)";
 };
@@ -149,6 +149,20 @@ const renderLogisticsKPIs = () => {
     `;
 };
 
+const renderDriversKPIs = () => {
+    const kpiContainer = document.getElementById('drivers-kpi-cards');
+    if (!kpiContainer) return;
+
+    const totalDrivers = drivers.length;
+    const activeDrivers = new Set(collections.map(c => c.driverId)).size;
+    const totalCollections = collections.length;
+
+    kpiContainer.innerHTML = `
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200"><h3 class="text-sm font-medium text-gray-500">Total Drivers</h3><p class="text-3xl font-bold mt-2">${totalDrivers}</p></div>
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200"><h3 class="text-sm font-medium text-gray-500">Active Drivers</h3><p class="text-3xl font-bold mt-2 text-green-600">${activeDrivers}</p></div>
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200"><h3 class="text-sm font-medium text-gray-500">Total Collections</h3><p class="text-3xl font-bold mt-2 text-indigo-600">${totalCollections}</p></div>
+    `;
+};
 
 const renderBookingsGrid = () => {
     bookingsGridBody.innerHTML = '';
@@ -203,6 +217,67 @@ const renderCollectionsGrid = () => {
         });
     }
 }
+
+const renderDriverDashboard = () => {
+    const container = document.getElementById('driver-collections-container');
+    container.innerHTML = '';
+
+    if (collections.length === 0) {
+        container.innerHTML = '<div class="text-center py-12 text-gray-500"><p>No collections assigned to drivers yet.</p></div>';
+        return;
+    }
+
+    const collectionsByDriver = collections.reduce((acc, collection) => {
+        const driverName = collection.driverName || 'Unassigned';
+        if (!acc[driverName]) acc[driverName] = [];
+        acc[driverName].push(collection);
+        return acc;
+    }, {});
+
+    for (const driverName of Object.keys(collectionsByDriver).sort()) {
+        const driverSection = document.createElement('div');
+        driverSection.className = 'bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-8';
+        
+        const header = document.createElement('div');
+        header.className = 'p-4 border-b border-gray-200';
+        header.innerHTML = `<h2 class="text-xl font-semibold">${driverName}</h2>`;
+        driverSection.appendChild(header);
+
+        const tableContainer = document.createElement('div');
+        tableContainer.className = 'overflow-x-auto';
+        const table = document.createElement('table');
+        table.className = 'w-full text-sm text-left';
+        table.innerHTML = `
+            <thead class="bg-gray-50 text-xs text-gray-700 uppercase">
+                <tr>
+                    <th scope="col" class="px-6 py-3">Booking #</th>
+                    <th scope="col" class="px-6 py-3">Chassis</th>
+                    <th scope="col" class="px-6 py-3 text-center">Qty</th>
+                    <th scope="col" class="px-6 py-3">Size</th>
+                    <th scope="col" class="px-6 py-3">Timestamp</th>
+                </tr>
+            </thead>
+        `;
+        const tbody = document.createElement('tbody');
+        collectionsByDriver[driverName].forEach(c => {
+            const row = document.createElement('tr');
+            row.className = 'bg-white border-b hover:bg-gray-50';
+            row.innerHTML = `
+                <td class="px-6 py-4">${c.bookingNumber}</td>
+                <td class="px-6 py-4">${c.chassisName}</td>
+                <td class="px-6 py-4 text-center font-medium">${c.qty}</td>
+                <td class="px-6 py-4">${c.containerSize}</td>
+                <td class="px-6 py-4 text-gray-500">${formatTimestamp(c.createdAt)}</td>
+            `;
+            tbody.appendChild(row);
+        });
+
+        table.appendChild(tbody);
+        tableContainer.appendChild(table);
+        driverSection.appendChild(tableContainer);
+        container.appendChild(driverSection);
+    }
+};
 
 const renderDriversList = () => {
     const listElement = document.getElementById('drivers-list');
@@ -535,7 +610,8 @@ const deleteCollectionItem = async (collectionName, docId) => {
 
 // --- VALIDATION ---
 const validateCollectionForm = () => {
-    const qty = Number(document.getElementById('collection-form-qty').value);
+    const qtyInput = document.getElementById('collection-form-qty');
+    let qty = Number(qtyInput.value);
     const bookingId = document.getElementById('collection-form-booking').value;
     const selectedBooking = bookings.find(b => b.id === bookingId);
     const size = selectedBooking ? selectedBooking.containerSize : null;
@@ -546,13 +622,18 @@ const validateCollectionForm = () => {
     const sizeMsg = document.getElementById('size-validation-msg');
     let isValid = true;
 
+    // Logic for 40ft containers forcing qty to 1
+    if (size === '40ft') {
+        qtyInput.value = 1;
+        qty = 1;
+        qtyInput.disabled = true;
+    } else {
+        qtyInput.disabled = false;
+    }
+
     qtyMsg.classList.add('hidden');
     if (qty === 2 && selectedChassis && !selectedChassis.is2x20) {
         qtyMsg.textContent = "This chassis cannot handle 2 containers.";
-        qtyMsg.classList.remove('hidden');
-        isValid = false;
-    } else if (size === '40ft' && qty > 1) {
-        qtyMsg.textContent = "Cannot have more than one 40ft container.";
         qtyMsg.classList.remove('hidden');
         isValid = false;
     }
@@ -626,14 +707,14 @@ const setupEventListeners = () => {
 // --- FIREBASE INITIALIZATION & DATA SYNC ---
 const setupRealtimeListeners = () => {
     const collectionsConfig = {
-        containers: { stateVar: 'containers', renderFn: () => { renderContainers(); renderKPIs(); renderLogisticsKPIs(); } },
-        drivers: { stateVar: 'drivers', renderFn: renderDriversList },
+        containers: { stateVar: 'containers', renderFn: () => { renderContainers(); renderKPIs(); } },
+        drivers: { stateVar: 'drivers', renderFn: () => { renderDriversList(); renderDriversKPIs(); renderDriverDashboard(); } },
         chassis: { stateVar: 'chassis', renderFn: renderChassisList },
         locations: { stateVar: 'locations', renderFn: () => renderCollectionList('locations-list', locations, 'locations') },
         statuses: { stateVar: 'statuses', renderFn: renderStatusesList },
         containerTypes: { stateVar: 'containerTypes', renderFn: () => { renderCollectionList('container-types-list', containerTypes, 'containerTypes'); populateDropdowns(); } },
         bookings: { stateVar: 'bookings', renderFn: () => { renderBookingsGrid(); renderLogisticsKPIs(); } },
-        collections: { stateVar: 'collections', renderFn: renderCollectionsGrid }
+        collections: { stateVar: 'collections', renderFn: () => { renderCollectionsGrid(); renderDriverDashboard(); renderDriversKPIs(); } }
     };
 
     for (const [colName, config] of Object.entries(collectionsConfig)) {
