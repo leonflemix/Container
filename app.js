@@ -229,12 +229,14 @@ const renderDriverDashboard = () => {
     const containerEl = document.getElementById('driver-collections-container');
     containerEl.innerHTML = '';
 
-    if (collections.length === 0) {
-        containerEl.innerHTML = '<div class="text-center py-12 text-gray-500"><p>No collections assigned to drivers yet.</p></div>';
+    const activeCollections = collections.filter(c => c.status !== 'Collection Complete');
+
+    if (activeCollections.length === 0) {
+        containerEl.innerHTML = '<div class="text-center py-12 text-gray-500"><p>No active collections assigned to drivers.</p></div>';
         return;
     }
 
-    const collectionsByDriver = collections.reduce((acc, collection) => {
+    const collectionsByDriver = activeCollections.reduce((acc, collection) => {
         const driverName = collection.driverName || 'Unassigned';
         if (!acc[driverName]) acc[driverName] = [];
         acc[driverName].push(collection);
