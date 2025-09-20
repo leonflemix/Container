@@ -72,7 +72,7 @@ const formatTimestamp = (dateString) => {
 
 const updateDateTime = () => {
     const el = document.getElementById('current-datetime');
-    const now = new Date('2025-09-20T11:23:00'); // User-specified time
+    const now = new Date('2025-09-20T11:38:00'); // User-specified time
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'America/Halifax' };
     el.textContent = now.toLocaleDateString('en-CA', options) + " (Dartmouth, NS)";
 };
@@ -164,6 +164,7 @@ const renderBookingsGrid = () => {
             row.innerHTML = `
                 <td class="px-6 py-4 font-semibold text-gray-900">${b.number}</td>
                 <td class="px-6 py-4">${b.type}</td>
+                <td class="px-6 py-4">${b.containerSize || 'N/A'}</td>
                 <td class="px-6 py-4">${b.deadline || 'N/A'}</td>
                 <td class="px-6 py-4 text-center font-medium text-green-600">${assignedCount}</td>
                 <td class="px-6 py-4 text-center font-medium text-gray-700">${b.qty}</td>
@@ -314,6 +315,7 @@ const openBookingModal = (bookingId = null) => {
         document.getElementById('booking-form-qty').value = booking.qty;
         document.getElementById('booking-form-deadline').value = booking.deadline;
         document.getElementById('booking-form-type').value = booking.type;
+        document.getElementById('booking-form-size').value = booking.containerSize;
     } else {
         bookingModalTitle.textContent = 'Add New Booking';
         document.getElementById('booking-id-input').value = '';
@@ -432,14 +434,16 @@ const handleBookingFormSubmit = async (e) => {
     const qty = document.getElementById('booking-form-qty').value;
     const type = document.getElementById('booking-form-type').value;
     const deadline = document.getElementById('booking-form-deadline').value;
+    const containerSize = document.getElementById('booking-form-size').value;
 
-    if (!number || !qty || !type || !deadline) { console.error("All booking fields are required."); return; }
+    if (!number || !qty || !type || !deadline || !containerSize) { console.error("All booking fields are required."); return; }
     
     const bookingData = { 
         number, 
         qty: Number(qty), 
         type, 
-        deadline 
+        deadline,
+        containerSize
     };
 
     try {
@@ -457,22 +461,21 @@ const handleBookingFormSubmit = async (e) => {
 
 const handleCollectionFormSubmit = async (e) => {
     e.preventDefault();
+    
+    validateCollectionForm();
+    if (collectionSaveBtn.disabled) {
+        console.error("Validation failed. Cannot create collection.");
+        return;
+    }
+
     const driverId = document.getElementById('collection-form-driver').value;
     const bookingId = document.getElementById('collection-form-booking').value;
     const chassisId = document.getElementById('collection-form-chassis').value;
     const qty = Number(document.getElementById('collection-form-qty').value);
-    const containerSize = document.getElementById('collection-form-size').value;
-
+    
     const driver = drivers.find(d => d.id === driverId);
     const booking = bookings.find(b => b.id === bookingId);
     const selectedChassis = chassis.find(c => c.id === chassisId);
-
-    // Final validation before submitting
-    if ((qty === 2 && !selectedChassis.is2x20) || (containerSize === '40ft' && !selectedChassis.is40ft)) {
-        console.error("Validation failed. Cannot create collection.");
-        validateCollectionForm(); // Re-show validation messages
-        return;
-    }
 
     const collectionData = {
         driverId,
@@ -482,7 +485,7 @@ const handleCollectionFormSubmit = async (e) => {
         chassisId,
         chassisName: selectedChassis?.name,
         qty,
-        containerSize,
+        containerSize: booking?.containerSize,
         createdAt: new Date().toISOString()
     };
     
@@ -533,7 +536,9 @@ const deleteCollectionItem = async (collectionName, docId) => {
 // --- VALIDATION ---
 const validateCollectionForm = () => {
     const qty = Number(document.getElementById('collection-form-qty').value);
-    const size = document.getElementById('collection-form-size').value;
+    const bookingId = document.getElementById('collection-form-booking').value;
+    const selectedBooking = bookings.find(b => b.id === bookingId);
+    const size = selectedBooking ? selectedBooking.containerSize : null;
     const chassisId = document.getElementById('collection-form-chassis').value;
     const selectedChassis = chassis.find(c => c.id === chassisId);
 
@@ -581,7 +586,7 @@ const setupEventListeners = () => {
     collectionModal.addEventListener('click', (e) => { if (e.target === collectionModal) closeCollectionModal(); });
     collectionForm.addEventListener('submit', handleCollectionFormSubmit);
     collectionSaveBtn.addEventListener('click', () => collectionForm.requestSubmit());
-    ['collection-form-qty', 'collection-form-size', 'collection-form-chassis'].forEach(id => {
+    ['collection-form-qty', 'collection-form-booking', 'collection-form-chassis'].forEach(id => {
         document.getElementById(id).addEventListener('change', validateCollectionForm);
     });
 

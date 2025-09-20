@@ -99,7 +99,7 @@
             <!-- Bookings Grid -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-8">
                 <div class="p-4 border-b border-gray-200"><h2 class="text-xl font-semibold">All Bookings</h2></div>
-                <div class="overflow-x-auto"><table class="w-full text-sm text-left"><thead class="bg-gray-50 text-xs text-gray-700 uppercase"><tr><th scope="col" class="px-6 py-3">Booking #</th><th scope="col" class="px-6 py-3">Container Type</th><th scope="col" class="px-6 py-3">Deadline</th><th scope="col" class="px-6 py-3 text-center">Assigned</th><th scope="col" class="px-6 py-3 text-center">Required</th><th scope="col" class="px-6 py-3 text-center">In Process</th><th scope="col" class="px-6 py-3 text-center">Actions</th></tr></thead><tbody id="bookings-grid-body"></tbody></table><div id="no-bookings-message" class="text-center py-12 text-gray-500"><p>Loading bookings...</p></div></div>
+                <div class="overflow-x-auto"><table class="w-full text-sm text-left"><thead class="bg-gray-50 text-xs text-gray-700 uppercase"><tr><th scope="col" class="px-6 py-3">Booking #</th><th scope="col" class="px-6 py-3">Container Type</th><th scope="col" class="px-6 py-3">Size</th><th scope="col" class="px-6 py-3">Deadline</th><th scope="col" class="px-6 py-3 text-center">Assigned</th><th scope="col" class="px-6 py-3 text-center">Required</th><th scope="col" class="px-6 py-3 text-center">In Process</th><th scope="col" class="px-6 py-3 text-center">Actions</th></tr></thead><tbody id="bookings-grid-body"></tbody></table><div id="no-bookings-message" class="text-center py-12 text-gray-500"><p>Loading bookings...</p></div></div>
             </div>
 
             <!-- Collections Grid -->
@@ -184,12 +184,24 @@
             <div class="p-6 border-b"><h3 id="booking-modal-title" class="text-xl font-semibold">Add New Booking</h3></div>
             <form id="booking-form" class="p-6 space-y-4">
                 <input type="hidden" id="booking-id-input">
-                <div><label for="booking-form-number" class="block text-sm font-medium text-gray-700 mb-1">Booking Number</label><input type="text" id="booking-form-number" placeholder="e.g., BK-12345" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required></div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div><label for="booking-form-qty" class="block text-sm font-medium text-gray-700 mb-1">Quantity</label><input type="number" id="booking-form-qty" min="1" placeholder="1" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required></div>
-                    <div><label for="booking-form-deadline" class="block text-sm font-medium text-gray-700 mb-1">Deadline</label><input type="date" id="booking-form-deadline" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required></div>
+                <div>
+                    <label for="booking-form-number" class="block text-sm font-medium text-gray-700 mb-1">Booking Number</label>
+                    <input type="text" id="booking-form-number" placeholder="e.g., BK-12345" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required>
                 </div>
-                <div><label for="booking-form-type" class="block text-sm font-medium text-gray-700 mb-1">Container Type</label><select id="booking-form-type" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"></select></div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="booking-form-qty" class="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+                        <input type="number" id="booking-form-qty" min="1" placeholder="1" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required>
+                    </div>
+                    <div>
+                        <label for="booking-form-deadline" class="block text-sm font-medium text-gray-700 mb-1">Deadline</label>
+                        <input type="date" id="booking-form-deadline" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required>
+                    </div>
+                </div>
+                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div><label for="booking-form-type" class="block text-sm font-medium text-gray-700 mb-1">Container Type</label><select id="booking-form-type" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"></select></div>
+                    <div><label for="booking-form-size" class="block text-sm font-medium text-gray-700 mb-1">Container Size</label><select id="booking-form-size" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"><option value="20ft">20ft</option><option value="40ft">40ft</option></select></div>
+                </div>
             </form>
             <div class="bg-gray-50 px-6 py-4 flex justify-end space-x-3 rounded-b-lg">
                 <button id="booking-cancel-btn" class="bg-white text-gray-700 font-semibold py-2 px-4 rounded-lg border hover:bg-gray-100">Cancel</button>
@@ -205,11 +217,8 @@
             <form id="collection-form" class="p-6 space-y-4">
                 <div><label for="collection-form-driver" class="block text-sm font-medium text-gray-700 mb-1">Assigned Driver</label><select id="collection-form-driver" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required></select></div>
                 <div><label for="collection-form-booking" class="block text-sm font-medium text-gray-700 mb-1">Booking Number</label><select id="collection-form-booking" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required></select></div>
-                <div><label for="collection-form-chassis" class="block text-sm font-medium text-gray-700 mb-1">Chassis</label><select id="collection-form-chassis" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required></select></div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div><label for="collection-form-qty" class="block text-sm font-medium text-gray-700 mb-1">Quantity (1 or 2)</label><input type="number" id="collection-form-qty" min="1" max="2" value="1" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required><p id="qty-validation-msg" class="text-xs text-red-600 mt-1 hidden"></p></div>
-                    <div><label for="collection-form-size" class="block text-sm font-medium text-gray-700 mb-1">Container Size</label><select id="collection-form-size" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required><option value="20ft">20ft</option><option value="40ft">40ft</option></select><p id="size-validation-msg" class="text-xs text-red-600 mt-1 hidden"></p></div>
-                </div>
+                <div><label for="collection-form-chassis" class="block text-sm font-medium text-gray-700 mb-1">Chassis</label><select id="collection-form-chassis" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required></select><p id="size-validation-msg" class="text-xs text-red-600 mt-1 hidden"></p></div>
+                <div><label for="collection-form-qty" class="block text-sm font-medium text-gray-700 mb-1">Quantity (1 or 2)</label><input type="number" id="collection-form-qty" min="1" max="2" value="1" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required><p id="qty-validation-msg" class="text-xs text-red-600 mt-1 hidden"></p></div>
             </form>
             <div class="bg-gray-50 px-6 py-4 flex justify-end space-x-3 rounded-b-lg">
                 <button id="collection-cancel-btn" class="bg-white text-gray-700 font-semibold py-2 px-4 rounded-lg border hover:bg-gray-100">Cancel</button>
