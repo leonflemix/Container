@@ -47,7 +47,7 @@ const formatTimeAgo = (dateString) => {
 
 const updateDateTime = () => {
     const el = document.getElementById('current-datetime');
-    const now = new Date('2025-09-20T09:18:00');
+    const now = new Date('2025-09-20T09:23:00');
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'America/Halifax' };
     el.textContent = now.toLocaleDateString('en-CA', options) + " (Dartmouth, NS)";
 };
@@ -240,7 +240,7 @@ const openEditModal = (collection, id) => {
             <input type="hidden" name="id" value="${item.id}">
             <div class="flex items-end gap-2">
                 <div class="w-1/4">
-                    <label class="block text-sm font-medium">Emoji</label>
+                    <label class="block text-sm font-medium">Emoji(s)</label>
                     <input type="text" name="emoji" value="${item.emoji}" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md" required>
                 </div>
                 <div class="flex-grow">
