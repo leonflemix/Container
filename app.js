@@ -3,7 +3,7 @@ import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.g
 import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // --- GLOBAL STATE ---
-let containers = [], drivers = [], locations = [], statuses = [], chassis = [], containerTypes = [], bookings = [];
+let containers = [], drivers = [], locations = [], statuses = [], chassis = [], containerTypes = [], bookings = [], collections = [];
 let db, auth, userId;
 
 // --- DOM ELEMENTS ---
@@ -33,6 +33,15 @@ const bookingForm = document.getElementById('booking-form');
 const bookingsGridBody = document.getElementById('bookings-grid-body');
 const noBookingsMessage = document.getElementById('no-bookings-message');
 
+// Collection Modal Elements
+const createCollectionBtn = document.getElementById('createCollectionBtn');
+const collectionModal = document.getElementById('collection-modal');
+const collectionForm = document.getElementById('collection-form');
+const collectionCancelBtn = document.getElementById('collection-cancel-btn');
+const collectionSaveBtn = document.getElementById('collection-save-btn');
+const collectionsGridBody = document.getElementById('collections-grid-body');
+const noCollectionsMessage = document.getElementById('no-collections-message');
+
 // Edit Modal Elements
 const editModal = document.getElementById('edit-modal');
 const editModalTitle = document.getElementById('edit-modal-title');
@@ -55,9 +64,15 @@ const formatTimeAgo = (dateString) => {
     return `${days} days ago`;
 };
 
+const formatTimestamp = (dateString) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleString('en-CA', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
 const updateDateTime = () => {
     const el = document.getElementById('current-datetime');
-    const now = new Date('2025-09-20T10:45:00'); // User-specified time
+    const now = new Date('2025-09-20T11:23:00'); // User-specified time
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'America/Halifax' };
     el.textContent = now.toLocaleDateString('en-CA', options) + " (Dartmouth, NS)";
 };
@@ -139,7 +154,6 @@ const renderBookingsGrid = () => {
     bookingsGridBody.innerHTML = '';
     if (bookings.length === 0) {
         noBookingsMessage.classList.remove('hidden');
-        noBookingsMessage.querySelector('p').textContent = 'No bookings found. Click "Add New Booking" to get started.';
     } else {
         noBookingsMessage.classList.add('hidden');
         bookings.forEach(b => {
@@ -163,6 +177,31 @@ const renderBookingsGrid = () => {
         });
     }
 };
+
+const renderCollectionsGrid = () => {
+    collectionsGridBody.innerHTML = '';
+    if (collections.length === 0) {
+        noCollectionsMessage.classList.remove('hidden');
+    } else {
+        noCollectionsMessage.classList.add('hidden');
+        collections.forEach(c => {
+            const row = document.createElement('tr');
+            row.className = 'bg-white border-b hover:bg-gray-50';
+            row.innerHTML = `
+                <td class="px-6 py-4 font-semibold text-gray-900">${c.driverName}</td>
+                <td class="px-6 py-4">${c.bookingNumber}</td>
+                <td class="px-6 py-4">${c.chassisName}</td>
+                <td class="px-6 py-4 text-center font-medium">${c.qty}</td>
+                <td class="px-6 py-4 text-center font-medium">${c.containerSize}</td>
+                <td class="px-6 py-4 text-gray-500">${formatTimestamp(c.createdAt)}</td>
+                <td class="px-6 py-4 text-center">
+                    <button data-collection="collections" data-id="${c.id}" class="delete-item-btn font-medium text-red-600 hover:underline">Delete</button>
+                </td>
+            `;
+            collectionsGridBody.appendChild(row);
+        });
+    }
+}
 
 const renderDriversList = () => {
     const listElement = document.getElementById('drivers-list');
@@ -238,7 +277,7 @@ const populateDropdowns = () => {
     document.getElementById('container-type').innerHTML = createOptions(containerTypes, 'name');
     document.getElementById('container-location').innerHTML = createOptions(locations, 'name');
     document.getElementById('container-status').innerHTML = createStatusOptions(statuses);
-    document.getElementById('container-driver').innerHTML = '<option value="Unassigned">Unassigned</option>' + createOptions(drivers, 'name');
+    document.getElementById('container-driver').innerHTML = '<option value="">Unassigned</option>' + createOptions(drivers, 'name');
 };
 
 const openModal = (containerId = null) => {
@@ -282,6 +321,16 @@ const openBookingModal = (bookingId = null) => {
     bookingModal.classList.remove('hidden');
 };
 const closeBookingModal = () => bookingModal.classList.add('hidden');
+
+const openCollectionModal = () => {
+    collectionForm.reset();
+    document.getElementById('collection-form-driver').innerHTML = drivers.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+    document.getElementById('collection-form-booking').innerHTML = bookings.map(b => `<option value="${b.id}">${b.number}</option>`).join('');
+    document.getElementById('collection-form-chassis').innerHTML = chassis.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    validateCollectionForm();
+    collectionModal.classList.remove('hidden');
+};
+const closeCollectionModal = () => collectionModal.classList.add('hidden');
 
 const openEditModal = (collection, id) => {
     if (collection === 'bookings') {
@@ -406,6 +455,45 @@ const handleBookingFormSubmit = async (e) => {
     }
 };
 
+const handleCollectionFormSubmit = async (e) => {
+    e.preventDefault();
+    const driverId = document.getElementById('collection-form-driver').value;
+    const bookingId = document.getElementById('collection-form-booking').value;
+    const chassisId = document.getElementById('collection-form-chassis').value;
+    const qty = Number(document.getElementById('collection-form-qty').value);
+    const containerSize = document.getElementById('collection-form-size').value;
+
+    const driver = drivers.find(d => d.id === driverId);
+    const booking = bookings.find(b => b.id === bookingId);
+    const selectedChassis = chassis.find(c => c.id === chassisId);
+
+    // Final validation before submitting
+    if ((qty === 2 && !selectedChassis.is2x20) || (containerSize === '40ft' && !selectedChassis.is40ft)) {
+        console.error("Validation failed. Cannot create collection.");
+        validateCollectionForm(); // Re-show validation messages
+        return;
+    }
+
+    const collectionData = {
+        driverId,
+        driverName: driver?.name,
+        bookingId,
+        bookingNumber: booking?.number,
+        chassisId,
+        chassisName: selectedChassis?.name,
+        qty,
+        containerSize,
+        createdAt: new Date().toISOString()
+    };
+    
+    try {
+        await addDoc(collection(db, `/artifacts/${window.appId}/public/data/collections`), collectionData);
+        closeCollectionModal();
+    } catch (error) {
+        console.error("Error creating collection:", error);
+    }
+};
+
 
 const handleEditFormSubmit = async (e) => {
     e.preventDefault();
@@ -442,6 +530,37 @@ const deleteCollectionItem = async (collectionName, docId) => {
     try { await deleteDoc(doc(db, `/artifacts/${window.appId}/public/data/${collectionName}`, docId)); } catch (error) { console.error(`Error deleting from ${collectionName}:`, error); }
 };
 
+// --- VALIDATION ---
+const validateCollectionForm = () => {
+    const qty = Number(document.getElementById('collection-form-qty').value);
+    const size = document.getElementById('collection-form-size').value;
+    const chassisId = document.getElementById('collection-form-chassis').value;
+    const selectedChassis = chassis.find(c => c.id === chassisId);
+
+    const qtyMsg = document.getElementById('qty-validation-msg');
+    const sizeMsg = document.getElementById('size-validation-msg');
+    let isValid = true;
+
+    qtyMsg.classList.add('hidden');
+    if (qty === 2 && selectedChassis && !selectedChassis.is2x20) {
+        qtyMsg.textContent = "This chassis cannot handle 2 containers.";
+        qtyMsg.classList.remove('hidden');
+        isValid = false;
+    }
+
+    sizeMsg.classList.add('hidden');
+    if (size === '40ft' && selectedChassis && !selectedChassis.is40ft) {
+        sizeMsg.textContent = "This chassis cannot handle a 40ft container.";
+        sizeMsg.classList.remove('hidden');
+        isValid = false;
+    }
+
+    collectionSaveBtn.disabled = !isValid;
+    collectionSaveBtn.classList.toggle('opacity-50', !isValid);
+    collectionSaveBtn.classList.toggle('cursor-not-allowed', !isValid);
+};
+
+
 // --- EVENT LISTENERS ---
 const setupEventListeners = () => {
     addContainerBtn.addEventListener('click', () => openModal());
@@ -456,6 +575,15 @@ const setupEventListeners = () => {
     bookingModal.addEventListener('click', (e) => { if (e.target === bookingModal) closeBookingModal(); });
     bookingForm.addEventListener('submit', handleBookingFormSubmit);
     bookingSaveBtn.addEventListener('click', () => bookingForm.requestSubmit());
+
+    createCollectionBtn.addEventListener('click', openCollectionModal);
+    collectionCancelBtn.addEventListener('click', closeCollectionModal);
+    collectionModal.addEventListener('click', (e) => { if (e.target === collectionModal) closeCollectionModal(); });
+    collectionForm.addEventListener('submit', handleCollectionFormSubmit);
+    collectionSaveBtn.addEventListener('click', () => collectionForm.requestSubmit());
+    ['collection-form-qty', 'collection-form-size', 'collection-form-chassis'].forEach(id => {
+        document.getElementById(id).addEventListener('change', validateCollectionForm);
+    });
 
     editCancelBtn.addEventListener('click', closeEditModal);
     editModal.addEventListener('click', (e) => { if (e.target === editModal) closeEditModal(); });
@@ -488,22 +616,24 @@ const setupEventListeners = () => {
 
 // --- FIREBASE INITIALIZATION & DATA SYNC ---
 const setupRealtimeListeners = () => {
-    const collections = {
+    const collectionsConfig = {
         containers: { stateVar: 'containers', renderFn: () => { renderContainers(); renderKPIs(); renderLogisticsKPIs(); } },
         drivers: { stateVar: 'drivers', renderFn: renderDriversList },
         chassis: { stateVar: 'chassis', renderFn: renderChassisList },
         locations: { stateVar: 'locations', renderFn: () => renderCollectionList('locations-list', locations, 'locations') },
         statuses: { stateVar: 'statuses', renderFn: renderStatusesList },
         containerTypes: { stateVar: 'containerTypes', renderFn: () => { renderCollectionList('container-types-list', containerTypes, 'containerTypes'); populateDropdowns(); } },
-        bookings: { stateVar: 'bookings', renderFn: () => { renderBookingsGrid(); renderLogisticsKPIs(); } }
+        bookings: { stateVar: 'bookings', renderFn: () => { renderBookingsGrid(); renderLogisticsKPIs(); } },
+        collections: { stateVar: 'collections', renderFn: renderCollectionsGrid }
     };
 
-    for (const [colName, config] of Object.entries(collections)) {
+    for (const [colName, config] of Object.entries(collectionsConfig)) {
         onSnapshot(collection(db, `/artifacts/${window.appId}/public/data/${colName}`), (snapshot) => {
             const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             
             if (colName === 'statuses') { data.sort((a,b) => a.description.localeCompare(b.description)); } 
             else if (colName === 'bookings') { data.sort((a,b) => (b.deadline || '').localeCompare(a.deadline || '')); }
+            else if (colName === 'collections') { data.sort((a,b) => (b.createdAt || '').localeCompare(a.createdAt || '')); }
             else if (data.every(item => item.name)) { data.sort((a,b) => a.name.localeCompare(b.name)); }
 
             if (config.stateVar === 'containers') containers = data.sort((a,b) => (b.lastUpdated || '').localeCompare(a.lastUpdated || ''));
@@ -513,7 +643,8 @@ const setupRealtimeListeners = () => {
             else if (config.stateVar === 'statuses') statuses = data;
             else if (config.stateVar === 'containerTypes') containerTypes = data;
             else if (config.stateVar === 'bookings') bookings = data;
-            
+            else if (config.stateVar === 'collections') collections = data;
+
             config.renderFn();
         });
     }
