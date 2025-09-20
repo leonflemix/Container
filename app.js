@@ -3,7 +3,7 @@ import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.g
 import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // --- GLOBAL STATE ---
-let containers = [], drivers = [], locations = [], statuses = [];
+let containers = [], drivers = [], locations = [], statuses = [], chassis = [], containerTypes = [];
 let db, auth, userId;
 
 // --- DOM ELEMENTS ---
@@ -47,7 +47,7 @@ const formatTimeAgo = (dateString) => {
 
 const updateDateTime = () => {
     const el = document.getElementById('current-datetime');
-    const now = new Date('2025-09-20T09:23:00');
+    const now = new Date('2025-09-20T09:31:00'); // Updated time
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'America/Halifax' };
     el.textContent = now.toLocaleDateString('en-CA', options) + " (Dartmouth, NS)";
 };
@@ -69,7 +69,7 @@ const showPage = (pageId) => {
     });
     setActiveLink(navLinks);
     setActiveLink(mobileNavLinks);
-    if (mobileMenu.classList.contains('hidden') === false) { mobileMenu.classList.add('hidden'); }
+    if (!mobileMenu.classList.contains('hidden')) { mobileMenu.classList.add('hidden'); }
 };
 
 // --- RENDER FUNCTIONS ---
@@ -120,12 +120,30 @@ const renderDriversList = () => {
                     <p class="text-xs text-gray-500">ID: ${driver.idNumber} | Plate: ${driver.plate} | Tare: ${driver.weight}kg</p>
                 </div>
                 <div class="flex items-center flex-shrink-0 ml-2">
-                    <button data-collection="drivers" data-id="${driver.id}" class="edit-item-btn text-gray-400 hover:text-blue-500 p-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>
-                    </button>
-                    <button data-collection="drivers" data-id="${driver.id}" class="delete-item-btn text-gray-400 hover:text-red-500 p-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
-                    </button>
+                    <button data-collection="drivers" data-id="${driver.id}" class="edit-item-btn text-gray-400 hover:text-blue-500 p-1"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg></button>
+                    <button data-collection="drivers" data-id="${driver.id}" class="delete-item-btn text-gray-400 hover:text-red-500 p-1"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button>
+                </div>
+            </div>`;
+        listElement.appendChild(li);
+    });
+};
+
+const renderChassisList = () => {
+    const listElement = document.getElementById('chassis-list');
+    listElement.innerHTML = '';
+    chassis.forEach(item => {
+        const li = document.createElement('li');
+        li.className = 'bg-gray-50 p-3 rounded-md border border-gray-200';
+        const checkIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block text-green-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>`;
+        li.innerHTML = `
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="font-semibold text-gray-900">${item.name}</p>
+                    <p class="text-xs text-gray-500">Weight: ${item.weight}kg | 40ft: ${item.is40ft ? checkIcon : 'No'} | 2x20: ${item.is2x20 ? checkIcon : 'No'}</p>
+                </div>
+                <div class="flex items-center flex-shrink-0 ml-2">
+                    <button data-collection="chassis" data-id="${item.id}" class="edit-item-btn text-gray-400 hover:text-blue-500 p-1"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg></button>
+                    <button data-collection="chassis" data-id="${item.id}" class="delete-item-btn text-gray-400 hover:text-red-500 p-1"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button>
                 </div>
             </div>`;
         listElement.appendChild(li);
@@ -144,12 +162,8 @@ const renderStatusesList = () => {
                 <span class="font-medium text-gray-800">${status.description}</span>
             </div>
             <div class="flex items-center flex-shrink-0 ml-2">
-                <button data-collection="statuses" data-id="${status.id}" class="edit-item-btn text-gray-400 hover:text-blue-500 p-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>
-                </button>
-                <button data-collection="statuses" data-id="${status.id}" class="delete-item-btn text-gray-400 hover:text-red-500 p-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
-                </button>
+                <button data-collection="statuses" data-id="${status.id}" class="edit-item-btn text-gray-400 hover:text-blue-500 p-1"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg></button>
+                <button data-collection="statuses" data-id="${status.id}" class="delete-item-btn text-gray-400 hover:text-red-500 p-1"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button>
             </div>`;
         listElement.appendChild(li);
     });
@@ -163,12 +177,8 @@ const renderCollectionList = (elementId, items, collectionName) => {
         li.className = 'flex justify-between items-center bg-gray-50 p-2 pl-3 rounded-md';
         li.innerHTML = `<span>${item.name}</span>
             <div class="flex items-center">
-                <button data-collection="${collectionName}" data-id="${item.id}" class="edit-item-btn text-gray-400 hover:text-blue-500 p-1">
-                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>
-                </button>
-                <button data-collection="${collectionName}" data-id="${item.id}" class="delete-item-btn text-gray-400 hover:text-red-500 p-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
-                </button>
+                <button data-collection="${collectionName}" data-id="${item.id}" class="edit-item-btn text-gray-400 hover:text-blue-500 p-1"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg></button>
+                <button data-collection="${collectionName}" data-id="${item.id}" class="delete-item-btn text-gray-400 hover:text-red-500 p-1"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button>
             </div>`;
         listElement.appendChild(li);
     });
@@ -248,8 +258,23 @@ const openEditModal = (collection, id) => {
                     <input type="text" name="description" value="${item.description}" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md" required>
                 </div>
             </div>`;
-    } else { // For locations
-        item = locations.find(i => i.id === id);
+    } else if (collection === 'chassis') {
+        item = chassis.find(i => i.id === id);
+        formHtml = `
+            <input type="hidden" name="collection" value="chassis">
+            <input type="hidden" name="id" value="${item.id}">
+            <div class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div><label class="block text-sm font-medium">Chassis Name</label><input type="text" name="name" value="${item.name}" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md" required></div>
+                    <div><label class="block text-sm font-medium">Weight (kg)</label><input type="number" name="weight" value="${item.weight}" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md" required></div>
+                </div>
+                <div class="flex items-center space-x-6">
+                    <label class="flex items-center space-x-2"><input type="checkbox" name="is40ft" class="h-4 w-4 text-blue-600 border-gray-300 rounded" ${item.is40ft ? 'checked' : ''}><span>40ft</span></label>
+                    <label class="flex items-center space-x-2"><input type="checkbox" name="is2x20" class="h-4 w-4 text-blue-600 border-gray-300 rounded" ${item.is2x20 ? 'checked' : ''}><span>2x20</span></label>
+                </div>
+            </div>`;
+    } else { // For locations and containerTypes
+        item = collection === 'locations' ? locations.find(i => i.id === id) : containerTypes.find(i => i.id === id);
         formHtml = `
             <input type="hidden" name="collection" value="${collection}">
             <input type="hidden" name="id" value="${item.id}">
@@ -318,6 +343,27 @@ const handleDriverFormSubmit = async (e) => {
     }
 };
 
+const handleChassisFormSubmit = async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('new-chassis-name').value.trim();
+    const weight = document.getElementById('new-chassis-weight').value;
+    const is40ft = document.getElementById('new-chassis-40ft').checked;
+    const is2x20 = document.getElementById('new-chassis-2x20').checked;
+
+    if (!name || !weight) {
+        console.error("Chassis name and weight are required.");
+        return;
+    }
+
+    const chassisData = { name, weight: Number(weight), is40ft, is2x20 };
+    try {
+        await addDoc(collection(db, `/artifacts/${window.appId}/public/data/chassis`), chassisData);
+        e.target.reset();
+    } catch (error) {
+        console.error('Error adding chassis:', error);
+    }
+};
+
 const handleStatusFormSubmit = async (e) => {
     e.preventDefault();
     const emoji = document.getElementById('new-status-emoji').value.trim();
@@ -346,6 +392,12 @@ const handleEditFormSubmit = async (e) => {
         if (key !== 'id' && key !== 'collection') {
             updatedData[key] = key === 'weight' ? Number(value) : value;
         }
+    }
+
+    // Handle checkboxes for chassis, as they don't appear in formData if unchecked
+    if (collectionName === 'chassis') {
+        updatedData.is40ft = formData.has('is40ft');
+        updatedData.is2x20 = formData.has('is2x20');
     }
 
     try {
@@ -404,8 +456,10 @@ const setupEventListeners = () => {
     mobileNavLinks.forEach(link => link.addEventListener('click', (e) => { e.preventDefault(); showPage(e.target.dataset.page); }));
 
     document.getElementById('add-driver-form').addEventListener('submit', handleDriverFormSubmit);
+    document.getElementById('add-chassis-form').addEventListener('submit', handleChassisFormSubmit);
     document.getElementById('add-location-form').addEventListener('submit', (e) => { e.preventDefault(); const input = e.target.querySelector('input'); addCollectionItem('locations', input.value.trim()); e.target.reset(); });
     document.getElementById('add-status-form').addEventListener('submit', handleStatusFormSubmit);
+    document.getElementById('add-container-type-form').addEventListener('submit', (e) => { e.preventDefault(); const input = e.target.querySelector('input'); addCollectionItem('containerTypes', input.value.trim()); e.target.reset(); });
 };
 
 // --- FIREBASE INITIALIZATION & DATA SYNC ---
@@ -413,8 +467,10 @@ const setupRealtimeListeners = () => {
     const collections = {
         containers: { stateVar: 'containers', renderFn: () => { renderContainers(); renderKPIs(); } },
         drivers: { stateVar: 'drivers', renderFn: renderDriversList },
+        chassis: { stateVar: 'chassis', renderFn: renderChassisList },
         locations: { stateVar: 'locations', renderFn: () => renderCollectionList('locations-list', locations, 'locations') },
-        statuses: { stateVar: 'statuses', renderFn: renderStatusesList }
+        statuses: { stateVar: 'statuses', renderFn: renderStatusesList },
+        containerTypes: { stateVar: 'containerTypes', renderFn: () => renderCollectionList('container-types-list', containerTypes, 'containerTypes') }
     };
 
     for (const [colName, config] of Object.entries(collections)) {
@@ -429,8 +485,10 @@ const setupRealtimeListeners = () => {
 
             if (config.stateVar === 'containers') containers = data.sort((a,b) => (b.lastUpdated || '').localeCompare(a.lastUpdated || ''));
             else if (config.stateVar === 'drivers') drivers = data;
+            else if (config.stateVar === 'chassis') chassis = data;
             else if (config.stateVar === 'locations') locations = data;
             else if (config.stateVar === 'statuses') statuses = data;
+            else if (config.stateVar === 'containerTypes') containerTypes = data;
             
             config.renderFn();
         });
