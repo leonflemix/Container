@@ -39,6 +39,9 @@ const collectionModal = document.getElementById('collection-modal');
 const collectionForm = document.getElementById('collection-form');
 const collectionCancelBtn = document.getElementById('collection-cancel-btn');
 const collectionSaveBtn = document.getElementById('collection-save-btn');
+const openCollectionsGridBody = document.getElementById('open-collections-grid-body');
+const noOpenCollectionsMessage = document.getElementById('no-open-collections-message');
+
 
 // Collect Modal Elements
 const collectModal = document.getElementById('collect-modal');
@@ -194,6 +197,32 @@ const renderBookingsGrid = () => {
                 </td>
             `;
             bookingsGridBody.appendChild(row);
+        });
+    }
+};
+
+const renderOpenCollectionsGrid = () => {
+    openCollectionsGridBody.innerHTML = '';
+    const openCollections = collections.filter(c => c.status !== 'Collection Complete');
+    if (openCollections.length === 0) {
+        noOpenCollectionsMessage.classList.remove('hidden');
+    } else {
+        noOpenCollectionsMessage.classList.add('hidden');
+        openCollections.forEach(c => {
+            const row = document.createElement('tr');
+            row.className = 'bg-white border-b hover:bg-gray-50';
+            row.innerHTML = `
+                <td class="px-6 py-4 font-semibold text-gray-900">${c.driverName}</td>
+                <td class="px-6 py-4">${c.bookingNumber}</td>
+                <td class="px-6 py-4">${c.chassisName}</td>
+                <td class="px-6 py-4 text-center font-medium">${c.qty}</td>
+                <td class="px-6 py-4 text-center font-medium">${c.containerSize}</td>
+                <td class="px-6 py-4 text-gray-500">${formatTimestamp(c.createdAt)}</td>
+                <td class="px-6 py-4 text-center">
+                    <button data-collection="collections" data-id="${c.id}" class="delete-item-btn font-medium text-red-600 hover:underline">Delete</button>
+                </td>
+            `;
+            openCollectionsGridBody.appendChild(row);
         });
     }
 };
@@ -774,7 +803,7 @@ const setupRealtimeListeners = () => {
         statuses: { stateVar: 'statuses', renderFn: renderStatusesList },
         containerTypes: { stateVar: 'containerTypes', renderFn: () => { renderCollectionList('container-types-list', containerTypes, 'containerTypes'); populateDropdowns(); } },
         bookings: { stateVar: 'bookings', renderFn: () => { renderBookingsGrid(); renderLogisticsKPIs(); renderDriverDashboard(); } },
-        collections: { stateVar: 'collections', renderFn: () => { renderDriverDashboard(); renderDriversKPIs(); } }
+        collections: { stateVar: 'collections', renderFn: () => { renderDriverDashboard(); renderDriversKPIs(); renderOpenCollectionsGrid(); } }
     };
 
     for (const [colName, config] of Object.entries(collectionsConfig)) {
