@@ -39,8 +39,6 @@ const collectionModal = document.getElementById('collection-modal');
 const collectionForm = document.getElementById('collection-form');
 const collectionCancelBtn = document.getElementById('collection-cancel-btn');
 const collectionSaveBtn = document.getElementById('collection-save-btn');
-const collectionsGridBody = document.getElementById('collections-grid-body');
-const noCollectionsMessage = document.getElementById('no-collections-message');
 
 // Collect Modal Elements
 const collectModal = document.getElementById('collect-modal');
@@ -199,31 +197,6 @@ const renderBookingsGrid = () => {
         });
     }
 };
-
-const renderCollectionsGrid = () => {
-    collectionsGridBody.innerHTML = '';
-    if (collections.length === 0) {
-        noCollectionsMessage.classList.remove('hidden');
-    } else {
-        noCollectionsMessage.classList.add('hidden');
-        collections.forEach(c => {
-            const row = document.createElement('tr');
-            row.className = 'bg-white border-b hover:bg-gray-50';
-            row.innerHTML = `
-                <td class="px-6 py-4 font-semibold text-gray-900">${c.driverName}</td>
-                <td class="px-6 py-4">${c.bookingNumber}</td>
-                <td class="px-6 py-4">${c.chassisName}</td>
-                <td class="px-6 py-4 text-center font-medium">${c.qty}</td>
-                <td class="px-6 py-4 text-center font-medium">${c.containerSize}</td>
-                <td class="px-6 py-4 text-gray-500">${formatTimestamp(c.createdAt)}</td>
-                <td class="px-6 py-4 text-center">
-                    <button data-collection="collections" data-id="${c.id}" class="delete-item-btn font-medium text-red-600 hover:underline">Delete</button>
-                </td>
-            `;
-            collectionsGridBody.appendChild(row);
-        });
-    }
-}
 
 const renderDriverDashboard = () => {
     const containerEl = document.getElementById('driver-collections-container');
@@ -801,7 +774,7 @@ const setupRealtimeListeners = () => {
         statuses: { stateVar: 'statuses', renderFn: renderStatusesList },
         containerTypes: { stateVar: 'containerTypes', renderFn: () => { renderCollectionList('container-types-list', containerTypes, 'containerTypes'); populateDropdowns(); } },
         bookings: { stateVar: 'bookings', renderFn: () => { renderBookingsGrid(); renderLogisticsKPIs(); renderDriverDashboard(); } },
-        collections: { stateVar: 'collections', renderFn: () => { renderCollectionsGrid(); renderDriverDashboard(); renderDriversKPIs(); } }
+        collections: { stateVar: 'collections', renderFn: () => { renderDriverDashboard(); renderDriversKPIs(); } }
     };
 
     for (const [colName, config] of Object.entries(collectionsConfig)) {
