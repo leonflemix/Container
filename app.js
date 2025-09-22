@@ -162,25 +162,28 @@ const renderDriversKPIs = () => {
     if (!kpiContainer) return;
 
     const totalDrivers = drivers.length;
-    const activeDrivers = new Set(collections.map(c => c.driverId)).size;
-    const totalCollections = collections.length;
-
+    const activeCollections = collections.filter(c => c.status !== 'Collection Complete');
+    const activeDrivers = new Set(activeCollections.map(c => c.driverId)).size;
+    
     kpiContainer.innerHTML = `
         <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200"><h3 class="text-sm font-medium text-gray-500">Total Drivers</h3><p class="text-3xl font-bold mt-2">${totalDrivers}</p></div>
         <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200"><h3 class="text-sm font-medium text-gray-500">Active Drivers</h3><p class="text-3xl font-bold mt-2 text-green-600">${activeDrivers}</p></div>
-        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200"><h3 class="text-sm font-medium text-gray-500">Total Collections</h3><p class="text-3xl font-bold mt-2 text-indigo-600">${totalCollections}</p></div>
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200"><h3 class="text-sm font-medium text-gray-500">Open Collections</h3><p class="text-3xl font-bold mt-2 text-indigo-600">${activeCollections.length}</p></div>
     `;
 };
 
 const renderBookingsGrid = () => {
     bookingsGridBody.innerHTML = '';
-    if (bookings.length === 0) {
+    const openBookings = bookings.filter(b => (b.assignedContainers?.length || 0) < b.qty);
+
+    if (openBookings.length === 0) {
         noBookingsMessage.classList.remove('hidden');
+        noBookingsMessage.querySelector('p').textContent = 'All bookings have been fulfilled.';
     } else {
         noBookingsMessage.classList.add('hidden');
-        bookings.forEach(b => {
+        openBookings.forEach(b => {
             const assignedCount = b.assignedContainers?.length || 0;
-            const inProcessCount = 0; // Placeholder for future logic
+            const inProcessCount = collections.filter(c => c.bookingId === b.id && c.status !== 'Collection Complete').length;
             const row = document.createElement('tr');
             row.className = 'bg-white border-b hover:bg-gray-50';
             row.innerHTML = `
@@ -418,8 +421,9 @@ const closeBookingModal = () => bookingModal.classList.add('hidden');
 
 const openCollectionModal = () => {
     collectionForm.reset();
+    const openBookings = bookings.filter(b => (b.assignedContainers?.length || 0) < b.qty);
     document.getElementById('collection-form-driver').innerHTML = drivers.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
-    document.getElementById('collection-form-booking').innerHTML = bookings.map(b => `<option value="${b.id}">${b.number}</option>`).join('');
+    document.getElementById('collection-form-booking').innerHTML = openBookings.map(b => `<option value="${b.id}">${b.number}</option>`).join('');
     document.getElementById('collection-form-chassis').innerHTML = chassis.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
     validateCollectionForm();
     collectionModal.classList.remove('hidden');
@@ -699,6 +703,19 @@ const validateCollectionForm = () => {
     const qtyMsg = document.getElementById('qty-validation-msg');
     const sizeMsg = document.getElementById('size-validation-msg');
     let isValid = true;
+    
+    // Validate against remaining booking quantity
+    if (selectedBooking) {
+        const remainingQty = selectedBooking.qty - (selectedBooking.assignedContainers?.length || 0);
+        if (qty > remainingQty) {
+            qtyMsg.textContent = `Only ${remainingQty} container(s) left on this booking.`;
+            qtyMsg.classList.remove('hidden');
+            isValid = false;
+        } else {
+            qtyMsg.classList.add('hidden');
+        }
+    }
+
 
     // Logic for 40ft containers forcing qty to 1
     if (size === '40ft') {
@@ -709,7 +726,6 @@ const validateCollectionForm = () => {
         qtyInput.disabled = false;
     }
 
-    qtyMsg.classList.add('hidden');
     if (qty === 2 && selectedChassis && !selectedChassis.is2x20) {
         qtyMsg.textContent = "This chassis cannot handle 2 containers.";
         qtyMsg.classList.remove('hidden');
