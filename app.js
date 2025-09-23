@@ -57,10 +57,6 @@ const editItemForm = document.getElementById('edit-item-form');
 const editCancelBtn = document.getElementById('edit-cancel-btn');
 const editSaveBtn = document.getElementById('edit-save-btn');
 
-// --- NEW DASHBOARD ELEMENTS ---
-const activeCollectionsGridBody = document.getElementById('active-collections-grid-body');
-const noActiveCollectionsMessage = document.getElementById('no-active-collections-message');
-
 
 // --- UTILITY & HELPER FUNCTIONS ---
 const formatTimeAgo = (dateString) => {
@@ -229,31 +225,6 @@ const renderOpenCollectionsGrid = () => {
                 </td>
             `;
             openCollectionsGridBody.appendChild(row);
-        });
-    }
-};
-
-const renderActiveCollectionsGrid = () => {
-    activeCollectionsGridBody.innerHTML = '';
-    const activeCollections = collections.filter(c => c.status !== 'Collection Complete');
-
-    if (activeCollections.length === 0) {
-        noActiveCollectionsMessage.classList.remove('hidden');
-    } else {
-        noActiveCollectionsMessage.classList.add('hidden');
-        activeCollections.forEach(c => {
-            const collectedSerials = (c.collectedContainers || []).map(cc => cc.containerSerial).join(', ');
-            const progress = `${c.collectedContainers?.length || 0} / ${c.qty}`;
-            const row = document.createElement('tr');
-            row.className = 'bg-white border-b hover:bg-gray-50';
-            row.innerHTML = `
-                <td class="px-6 py-4 font-semibold text-gray-900">${c.driverName}</td>
-                <td class="px-6 py-4">${c.bookingNumber}</td>
-                <td class="px-6 py-4 text-xs">${collectedSerials || 'None'}</td>
-                <td class="px-6 py-4 text-center font-medium">${progress}</td>
-                <td class="px-6 py-4">${getStatusBadge(c.status)}</td>
-            `;
-            activeCollectionsGridBody.appendChild(row);
         });
     }
 };
@@ -844,10 +815,10 @@ const setupRealtimeListeners = () => {
         drivers: { stateVar: 'drivers', renderFn: () => { renderDriversList(); renderDriversKPIs(); renderDriverDashboard(); } },
         chassis: { stateVar: 'chassis', renderFn: renderChassisList },
         locations: { stateVar: 'locations', renderFn: () => renderCollectionList('locations-list', locations, 'locations') },
-        statuses: { stateVar: 'statuses', renderFn: () => { renderStatusesList(); renderActiveCollectionsGrid(); } },
+        statuses: { stateVar: 'statuses', renderFn: () => { renderStatusesList(); } },
         containerTypes: { stateVar: 'containerTypes', renderFn: () => { renderCollectionList('container-types-list', containerTypes, 'containerTypes'); populateDropdowns(); } },
         bookings: { stateVar: 'bookings', renderFn: () => { renderBookingsGrid(); renderLogisticsKPIs(); renderDriverDashboard(); } },
-        collections: { stateVar: 'collections', renderFn: () => { renderDriverDashboard(); renderDriversKPIs(); renderOpenCollectionsGrid(); renderActiveCollectionsGrid(); } }
+        collections: { stateVar: 'collections', renderFn: () => { renderDriverDashboard(); renderDriversKPIs(); renderOpenCollectionsGrid(); } }
     };
 
     for (const [colName, config] of Object.entries(collectionsConfig)) {
@@ -910,3 +881,6 @@ document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
     initFirebase();
 });
+
+"
+
