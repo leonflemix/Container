@@ -7,11 +7,11 @@
             <div><label for="collection-form-booking" class="block text-sm font-medium text-gray-700 mb-1">Booking Number</label><select id="collection-form-booking" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required></select></div>
             <div><label for="collection-form-chassis" class="block text-sm font-medium text-gray-700 mb-1">Chassis</label><select id="collection-form-chassis" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required></select><p id="size-validation-msg" class="text-xs text-red-600 mt-1 hidden"></p></div>
             <div><label for="collection-form-qty" class="block text-sm font-medium text-gray-700 mb-1">Quantity (1 or 2)</label><input type="number" id="collection-form-qty" min="1" max="2" value="1" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required><p id="qty-validation-msg" class="text-xs text-red-600 mt-1 hidden"></p></div>
+            <div class="bg-gray-50 px-6 py-4 flex justify-end space-x-3 rounded-b-lg -mx-6 -mb-6 mt-6">
+                <button id="collection-cancel-btn" type="button" class="bg-white text-gray-700 font-semibold py-2 px-4 rounded-lg border hover:bg-gray-100">Cancel</button>
+                <button id="collection-save-btn" type="submit" class="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-indigo-700">Create Collection</button>
+            </div>
         </form>
-        <div class="bg-gray-50 px-6 py-4 flex justify-end space-x-3 rounded-b-lg">
-            <button id="collection-cancel-btn" class="bg-white text-gray-700 font-semibold py-2 px-4 rounded-lg border hover:bg-gray-100">Cancel</button>
-            <button id="collection-save-btn" class="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-indigo-700">Create Collection</button>
-        </div>
     </div>
 </div>
 
