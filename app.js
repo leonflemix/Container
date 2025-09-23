@@ -175,14 +175,12 @@ const renderDriversKPIs = () => {
 
 const renderBookingsGrid = () => {
     bookingsGridBody.innerHTML = '';
-    const openBookings = bookings.filter(b => (b.assignedContainers?.length || 0) < b.qty);
-
-    if (openBookings.length === 0) {
+    if (bookings.length === 0) {
         noBookingsMessage.classList.remove('hidden');
-        noBookingsMessage.querySelector('p').textContent = 'All bookings have been fulfilled.';
+        noBookingsMessage.querySelector('p').textContent = 'No bookings found.';
     } else {
         noBookingsMessage.classList.add('hidden');
-        openBookings.forEach(b => {
+        bookings.forEach(b => {
             const collectionsForBooking = collections.filter(c => c.bookingId === b.id);
             const inProcessCount = collectionsForBooking.reduce((sum, c) => sum + c.qty, 0);
             
@@ -196,8 +194,9 @@ const renderBookingsGrid = () => {
                 <td class="px-6 py-4 text-center font-medium text-gray-700">${b.qty}</td>
                 <td class="px-6 py-4 text-center font-medium text-amber-600">${inProcessCount}</td>
                 <td class="px-6 py-4 text-center">
+                    <button data-booking-id="${b.id}" class="collect-booking-btn bg-green-500 text-white font-semibold py-1 px-3 rounded-md hover:bg-green-600 text-xs mr-2">Collect</button>
                     <button data-collection="bookings" data-id="${b.id}" class="edit-item-btn font-medium text-blue-600 hover:underline">Edit</button>
-                    <button data-collection="bookings" data-id="${b.id}" class="delete-item-btn font-medium text-red-600 hover:underline ml-4">Delete</button>
+                    <button data-collection="bookings" data-id="${b.id}" class="delete-item-btn font-medium text-red-600 hover:underline ml-2">Delete</button>
                 </td>
             `;
             bookingsGridBody.appendChild(row);
@@ -420,12 +419,20 @@ const openBookingModal = (bookingId = null) => {
 };
 const closeBookingModal = () => bookingModal.classList.add('hidden');
 
-const openCollectionModal = () => {
+const openCollectionModal = (bookingId = null) => {
     collectionForm.reset();
     const openBookings = bookings.filter(b => (b.assignedContainers?.length || 0) < b.qty);
     document.getElementById('collection-form-driver').innerHTML = drivers.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
     document.getElementById('collection-form-booking').innerHTML = openBookings.map(b => `<option value="${b.id}">${b.number}</option>`).join('');
     document.getElementById('collection-form-chassis').innerHTML = chassis.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    
+    if (bookingId) {
+        const bookingDropdown = document.getElementById('collection-form-booking');
+        bookingDropdown.value = bookingId;
+        // Trigger change event to run validation
+        bookingDropdown.dispatchEvent(new Event('change'));
+    }
+
     validateCollectionForm();
     collectionModal.classList.remove('hidden');
 };
@@ -761,7 +768,7 @@ const setupEventListeners = () => {
     bookingForm.addEventListener('submit', handleBookingFormSubmit);
     bookingSaveBtn.addEventListener('click', () => bookingForm.requestSubmit());
 
-    createCollectionBtn.addEventListener('click', openCollectionModal);
+    createCollectionBtn.addEventListener('click', () => openCollectionModal());
     collectionCancelBtn.addEventListener('click', closeCollectionModal);
     collectionModal.addEventListener('click', (e) => { if (e.target === collectionModal) closeCollectionModal(); });
     collectionForm.addEventListener('submit', handleCollectionFormSubmit);
@@ -797,6 +804,9 @@ const setupEventListeners = () => {
         if (!target) return;
         if (target.classList.contains('edit-item-btn')) { openEditModal(target.dataset.collection, target.dataset.id); }
         if (target.classList.contains('delete-item-btn')) { deleteCollectionItem(target.dataset.collection, target.dataset.id); }
+        if (target.classList.contains('collect-booking-btn')) {
+             openCollectionModal(target.dataset.bookingId);
+        }
     });
 
     mobileMenuButton.addEventListener('click', () => { mobileMenu.classList.toggle('hidden'); menuOpenIcon.classList.toggle('hidden'); menuOpenIcon.classList.toggle('block'); menuClosedIcon.classList.toggle('hidden'); menuClosedIcon.classList.toggle('block'); });
@@ -820,7 +830,7 @@ const setupRealtimeListeners = () => {
         statuses: { stateVar: 'statuses', renderFn: () => { renderStatusesList(); } },
         containerTypes: { stateVar: 'containerTypes', renderFn: () => { renderCollectionList('container-types-list', containerTypes, 'containerTypes'); populateDropdowns(); } },
         bookings: { stateVar: 'bookings', renderFn: () => { renderBookingsGrid(); renderLogisticsKPIs(); renderDriverDashboard(); } },
-        collections: { stateVar: 'collections', renderFn: () => { renderDriverDashboard(); renderDriversKPIs(); renderOpenCollectionsGrid(); } }
+        collections: { stateVar: 'collections', renderFn: () => { renderDriverDashboard(); renderDriversKPIs(); renderOpenCollectionsGrid(); renderBookingsGrid(); } }
     };
 
     for (const [colName, config] of Object.entries(collectionsConfig)) {
@@ -883,3 +893,4 @@ document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
     initFirebase();
 });
+
