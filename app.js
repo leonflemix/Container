@@ -882,5 +882,3 @@ document.addEventListener('DOMContentLoaded', () => {
     initFirebase();
 });
 
-"
-
