@@ -183,7 +183,9 @@ const renderBookingsGrid = () => {
     } else {
         noBookingsMessage.classList.add('hidden');
         openBookings.forEach(b => {
-            const inProcessCount = b.assignedContainers?.length || 0;
+            const collectionsForBooking = collections.filter(c => c.bookingId === b.id);
+            const inProcessCount = collectionsForBooking.reduce((sum, c) => sum + c.qty, 0);
+            
             const row = document.createElement('tr');
             row.className = 'bg-white border-b hover:bg-gray-50';
             row.innerHTML = `
@@ -881,4 +883,3 @@ document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
     initFirebase();
 });
-
