@@ -144,16 +144,16 @@ const renderLogisticsKPIs = () => {
     const kpiContainer = document.getElementById('logistics-kpi-cards');
     if (!kpiContainer) return;
 
-    const totalBookings = bookings.length;
-    const totalQtyNeeded = bookings.reduce((sum, b) => sum + (b.qty || 0), 0);
-    const totalAssigned = bookings.reduce((sum, b) => sum + (b.assignedContainers?.length || 0), 0);
-    const pending = totalQtyNeeded - totalAssigned;
+    const openBookings = bookings.filter(b => (b.assignedContainers?.length || 0) < b.qty);
+    const totalQtyRequired = openBookings.reduce((sum, b) => sum + b.qty, 0);
+    const totalInProcess = bookings.reduce((sum, b) => sum + (b.assignedContainers?.length || 0), 0);
+    const awaitingCollection = totalQtyRequired - totalInProcess;
 
     kpiContainer.innerHTML = `
-        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200"><h3 class="text-sm font-medium text-gray-500">Total Bookings</h3><p class="text-3xl font-bold mt-2">${totalBookings}</p></div>
-        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200"><h3 class="text-sm font-medium text-gray-500">Containers Needed</h3><p class="text-3xl font-bold mt-2 text-red-600">${totalQtyNeeded}</p></div>
-        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200"><h3 class="text-sm font-medium text-gray-500">Containers Assigned</h3><p class="text-3xl font-bold mt-2 text-green-600">${totalAssigned}</p></div>
-        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200"><h3 class="text-sm font-medium text-gray-500">Pending Assignments</h3><p class="text-3xl font-bold mt-2 text-amber-600">${pending}</p></div>
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200"><h3 class="text-sm font-medium text-gray-500">Open Bookings</h3><p class="text-3xl font-bold mt-2">${openBookings.length}</p></div>
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200"><h3 class="text-sm font-medium text-gray-500">Total Containers Required</h3><p class="text-3xl font-bold mt-2 text-gray-800">${totalQtyRequired}</p></div>
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200"><h3 class="text-sm font-medium text-gray-500">Containers In Process</h3><p class="text-3xl font-bold mt-2 text-amber-600">${totalInProcess}</p></div>
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200"><h3 class="text-sm font-medium text-gray-500">Awaiting Collection</h3><p class="text-3xl font-bold mt-2 text-red-600">${awaitingCollection}</p></div>
     `;
 };
 
@@ -182,8 +182,7 @@ const renderBookingsGrid = () => {
     } else {
         noBookingsMessage.classList.add('hidden');
         openBookings.forEach(b => {
-            const assignedCount = b.assignedContainers?.length || 0;
-            const inProcessCount = collections.filter(c => c.bookingId === b.id && c.status !== 'Collection Complete').length;
+            const inProcessCount = b.assignedContainers?.length || 0;
             const row = document.createElement('tr');
             row.className = 'bg-white border-b hover:bg-gray-50';
             row.innerHTML = `
@@ -191,7 +190,6 @@ const renderBookingsGrid = () => {
                 <td class="px-6 py-4">${b.type}</td>
                 <td class="px-6 py-4">${b.containerSize || 'N/A'}</td>
                 <td class="px-6 py-4">${b.deadline || 'N/A'}</td>
-                <td class="px-6 py-4 text-center font-medium text-green-600">${assignedCount}</td>
                 <td class="px-6 py-4 text-center font-medium text-gray-700">${b.qty}</td>
                 <td class="px-6 py-4 text-center font-medium text-amber-600">${inProcessCount}</td>
                 <td class="px-6 py-4 text-center">
