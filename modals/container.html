@@ -1,0 +1,18 @@
+<!-- File: modals/container.html -->
+<div id="modal" class="modal-container hidden fixed inset-0 bg-gray-900 bg-opacity-60 flex justify-center items-center z-50">
+    <div class="bg-white rounded-lg shadow-2xl w-full max-w-lg mx-4">
+        <div class="p-6 border-b"><h3 id="modal-title" class="text-xl font-semibold">Add New Container</h3></div>
+        <form id="container-form" class="p-6 space-y-4">
+            <input type="hidden" id="container-id-input">
+            <div><label for="container-serial" class="block text-sm font-medium text-gray-700 mb-1">Container ID / Serial</label><input type="text" id="container-serial" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required></div>
+            <div><label for="container-type" class="block text-sm font-medium text-gray-700 mb-1">Container Type</label><select id="container-type" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"></select></div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div><label for="container-location" class="block text-sm font-medium text-gray-700 mb-1">Location</label><select id="container-location" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"></select></div>
+                <div><label for="container-status" class="block text-sm font-medium text-gray-700 mb-1">Status</label><select id="container-status" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"></select></div>
+            </div>
+            <div><label for="container-driver" class="block text-sm font-medium text-gray-700 mb-1">Assigned Driver</label><select id="container-driver" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"></select></div>
+        </form>
+        <div class="bg-gray-50 px-6 py-4 flex justify-end space-x-3 rounded-b-lg"><button id="cancel-btn" class="bg-white text-gray-700 font-semibold py-2 px-4 rounded-lg border hover:bg-gray-100">Cancel</button><button id="save-btn" class="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700">Save Container</button></div>
+    </div>
+</div>
+

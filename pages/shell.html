@@ -1,0 +1,44 @@
+<!-- File: pages/shell.html -->
+<!-- Navigation Bar -->
+<nav class="bg-white shadow-md border-b border-gray-200 sticky top-0 z-40">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center h-16">
+            <!-- Logo and Brand Name -->
+            <div class="flex-shrink-0 flex items-center">
+                <svg class="h-8 w-auto text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10.5 21V3.375c0-.621.504-1.125 1.125-1.125h.75c.621 0 1.125.504 1.125 1.125V21" />
+                </svg>
+                <span class="ml-3 text-xl font-bold text-gray-800">ContainerFlow</span>
+            </div>
+            <!-- Desktop Menu -->
+            <div id="desktop-menu" class="hidden md:flex md:items-center md:space-x-8">
+                <a href="#dashboard" class="nav-link text-blue-600 border-b-2 border-blue-600 px-1 pt-1 text-sm font-semibold" data-page="dashboard-page">Dashboard</a>
+                <a href="#logistics" class="nav-link text-gray-500 hover:text-gray-700 hover:border-b-2 hover:border-gray-300 px-1 pt-1 text-sm font-medium transition-colors duration-200" data-page="logistics-page">Logistics</a>
+                <a href="#drivers" class="nav-link text-gray-500 hover:text-gray-700 hover:border-b-2 hover:border-gray-300 px-1 pt-1 text-sm font-medium transition-colors duration-200" data-page="drivers-page">Drivers</a>
+                <a href="#settings" class="nav-link text-gray-500 hover:text-gray-700 hover:border-b-2 hover:border-gray-300 px-1 pt-1 text-sm font-medium transition-colors duration-200" data-page="settings-page">Settings</a>
+            </div>
+            <!-- Mobile Menu Button -->
+            <div class="md:hidden flex items-center">
+                <button id="mobile-menu-button" type="button" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500">
+                    <span class="sr-only">Open main menu</span>
+                    <svg id="menu-closed-icon" class="h-6 w-6 block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" /></svg>
+                    <svg id="menu-open-icon" class="h-6 w-6 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- Mobile menu, show/hide based on menu state. -->
+    <div class="md:hidden hidden" id="mobile-menu">
+        <div class="pt-2 pb-3 space-y-1">
+            <a href="#dashboard" class="mobile-nav-link bg-blue-50 border-l-4 border-blue-500 text-blue-700 block pl-3 pr-4 py-2 text-base font-medium" data-page="dashboard-page">Dashboard</a>
+            <a href="#logistics" class="mobile-nav-link border-l-4 border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 block pl-3 pr-4 py-2 text-base font-medium" data-page="logistics-page">Logistics</a>
+            <a href="#drivers" class="mobile-nav-link border-l-4 border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 block pl-3 pr-4 py-2 text-base font-medium" data-page="drivers-page">Drivers</a>
+            <a href="#settings" class="mobile-nav-link border-l-4 border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 block pl-3 pr-4 py-2 text-base font-medium" data-page="settings-page">Settings</a>
+        </div>
+    </div>
+</nav>
+
+<!-- Page Content will be loaded below -->
+<div id="page-content-container">
+</div>
+

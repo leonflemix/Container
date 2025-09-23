@@ -1,0 +1,50 @@
+<!-- File: pages/settings.html -->
+<main id="settings-page" class="page-content hidden">
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="mb-6"><h1 class="text-3xl font-bold text-gray-900">Settings</h1><p class="text-gray-500 mt-1">Manage your application's data collections.</p></header>
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+                <h2 class="text-lg font-semibold mb-4 border-b pb-2">Manage Drivers</h2>
+                <form id="add-driver-form" class="space-y-4 mb-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><label for="new-driver-name" class="block text-sm font-medium text-gray-700">Name</label><input type="text" id="new-driver-name" placeholder="John Doe" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required></div>
+                        <div><label for="new-driver-id" class="block text-sm font-medium text-gray-700">ID Number</label><input type="text" id="new-driver-id" placeholder="D12345" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required></div>
+                        <div><label for="new-driver-plate" class="block text-sm font-medium text-gray-700">Plate</label><input type="text" id="new-driver-plate" placeholder="TRK-001" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required></div>
+                        <div><label for="new-driver-weight" class="block text-sm font-medium text-gray-700">Tare Weight (kg)</label><input type="number" id="new-driver-weight" placeholder="18000" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required></div>
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700">Add Driver</button>
+                </form>
+                <ul id="drivers-list" class="space-y-3"></ul>
+            </div>
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+                <h2 class="text-lg font-semibold mb-4 border-b pb-2">Manage Chassis</h2>
+                <form id="add-chassis-form" class="space-y-4 mb-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><label for="new-chassis-name" class="block text-sm font-medium text-gray-700">Chassis Name</label><input type="text" id="new-chassis-name" placeholder="CH-101" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required></div>
+                         <div><label for="new-chassis-weight" class="block text-sm font-medium text-gray-700">Weight (kg)</label><input type="number" id="new-chassis-weight" placeholder="4000" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required></div>
+                    </div>
+                    <div class="flex items-center space-x-6"><label class="flex items-center space-x-2"><input type="checkbox" id="new-chassis-40ft" class="h-4 w-4 text-blue-600 border-gray-300 rounded"><span>40ft</span></label><label class="flex items-center space-x-2"><input type="checkbox" id="new-chassis-2x20" class="h-4 w-4 text-blue-600 border-gray-300 rounded"><span>2x20</span></label></div>
+                    <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700">Add Chassis</button>
+                </form>
+                <ul id="chassis-list" class="space-y-3"></ul>
+            </div>
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200"><h2 class="text-lg font-semibold mb-4 border-b pb-2">Manage Locations</h2><form id="add-location-form" class="flex gap-2 mb-4"><input type="text" id="new-location-name" placeholder="New location name..." class="flex-grow w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required><button type="submit" class="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700">Add</button></form><ul id="locations-list" class="space-y-2"></ul></div>
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+                <h2 class="text-lg font-semibold mb-4 border-b pb-2">Manage Statuses</h2>
+                <form id="add-status-form" class="space-y-4 mb-4">
+                    <div class="flex items-end gap-2">
+                        <div class="w-1/4"><label for="new-status-emoji" class="block text-sm font-medium text-gray-700">Emoji(s)</label><input type="text" id="new-status-emoji" placeholder="✅" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required></div>
+                        <div class="flex-grow"><label for="new-status-description" class="block text-sm font-medium text-gray-700">Description</label><input type="text" id="new-status-description" placeholder="Available" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required></div>
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700">Add Status</button>
+                </form>
+                <ul id="statuses-list" class="space-y-3"></ul>
+            </div>
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+                <h2 class="text-lg font-semibold mb-4 border-b pb-2">Manage Container Types</h2>
+                <form id="add-container-type-form" class="flex gap-2 mb-4"><input type="text" id="new-container-type-name" placeholder="e.g., High Cube, Reefer..." class="flex-grow w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required><button type="submit" class="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700">Add</button></form>
+                <ul id="container-types-list" class="space-y-2"></ul>
+            </div>
+        </div>
+    </main>
+

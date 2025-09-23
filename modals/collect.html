@@ -1,0 +1,22 @@
+<!-- File: modals/collect.html -->
+<div id="collect-modal" class="modal-container hidden fixed inset-0 bg-gray-900 bg-opacity-60 flex justify-center items-center z-50">
+    <div class="bg-white rounded-lg shadow-2xl w-full max-w-md mx-4">
+        <div class="p-6 border-b"><h3 id="collect-modal-title" class="text-xl font-semibold">Collect Container</h3></div>
+        <form id="collect-form" class="p-6 space-y-4">
+            <input type="hidden" id="collection-id-input">
+            <div>
+                <label for="container-number" class="block text-sm font-medium text-gray-700 mb-1">Container Number</label>
+                <input type="text" id="container-number" placeholder="e.g., BMOU1234567" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required>
+            </div>
+             <div>
+                <label for="container-tare" class="block text-sm font-medium text-gray-700 mb-1">TARE (kg)</label>
+                <input type="number" id="container-tare" placeholder="4000" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required>
+            </div>
+        </form>
+        <div class="bg-gray-50 px-6 py-4 flex justify-end space-x-3 rounded-b-lg">
+            <button id="collect-cancel-btn" class="bg-white text-gray-700 font-semibold py-2 px-4 rounded-lg border hover:bg-gray-100">Cancel</button>
+            <button id="collect-save-btn" class="bg-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700">Submit Collection</button>
+        </div>
+    </div>
+</div>
+
