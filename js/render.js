@@ -136,70 +136,105 @@ export const renderDriverDashboard = () => {
     const containerEl = document.getElementById('driver-collections-container');
     containerEl.innerHTML = '';
 
-    const activeCollections = state.collections.filter(c => c.status !== 'Collection Complete');
+    const tasksByDriver = {};
 
-    if (activeCollections.length === 0) {
-        containerEl.innerHTML = '<div class="text-center py-12 text-gray-500"><p>No active collections assigned to drivers.</p></div>';
+    // 1. Generate tasks from active collections
+    const activeCollections = state.collections.filter(c => c.status !== 'Collection Complete');
+    activeCollections.forEach(collection => {
+        const driverName = collection.driverName || 'Unassigned';
+        if (!tasksByDriver[driverName]) {
+            tasksByDriver[driverName] = [];
+        }
+
+        // Add "Deliver" tasks for already collected containers not yet at the yard
+        (collection.collectedContainers || []).forEach(collected => {
+            const container = state.containers.find(cont => cont.id === collected.containerId);
+            if (container && container.location !== 'Yard') {
+                tasksByDriver[driverName].push({
+                    type: 'deliver',
+                    container: container,
+                    collection: collection
+                });
+            }
+        });
+        
+        // Add "Collect" tasks for remaining containers in the collection
+        const collectedCount = collection.collectedContainers?.length || 0;
+        const remainingToCollect = collection.qty - collectedCount;
+        if (remainingToCollect > 0) {
+            tasksByDriver[driverName].push({
+                type: 'collect',
+                collection: collection,
+                qty: remainingToCollect,
+            });
+        }
+    });
+
+    if (Object.keys(tasksByDriver).length === 0) {
+        containerEl.innerHTML = '<div class="text-center py-12 text-gray-500"><p>No active tasks for drivers.</p></div>';
         return;
     }
 
-    const collectionsByDriver = activeCollections.reduce((acc, collection) => {
-        const driverName = collection.driverName || 'Unassigned';
-        if (!acc[driverName]) acc[driverName] = [];
-        acc[driverName].push(collection);
-        return acc;
-    }, {});
+    // 2. Render tasks grouped by driver
+    for (const driverName of Object.keys(tasksByDriver).sort()) {
+        const tasks = tasksByDriver[driverName];
+        if (tasks.length === 0) continue;
 
-    for (const driverName of Object.keys(collectionsByDriver).sort()) {
         const driverSection = document.createElement('div');
         driverSection.className = 'bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-8';
         
-        const header = document.createElement('div');
-        header.className = 'p-4 border-b border-gray-200';
-        header.innerHTML = `<h2 class="text-xl font-semibold">${driverName}</h2>`;
-        driverSection.appendChild(header);
-
-        const tableContainer = document.createElement('div');
-        tableContainer.className = 'overflow-x-auto';
-        const table = document.createElement('table');
-        table.className = 'w-full text-sm text-left';
-        table.innerHTML = `
-            <thead class="bg-gray-50 text-xs text-gray-700 uppercase">
-                <tr>
-                    <th scope="col" class="px-6 py-3">Booking #</th>
-                    <th scope="col" class="px-6 py-3">Type</th>
-                    <th scope="col" class="px-6 py-3">Status</th>
-                    <th scope="col" class="px-6 py-3">Location</th>
-                    <th scope="col" class="px-6 py-3 text-center">Actions</th>
-                </tr>
-            </thead>
+        driverSection.innerHTML = `
+            <div class="p-4 border-b border-gray-200"><h2 class="text-xl font-semibold">${driverName}</h2></div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left">
+                    <thead class="bg-gray-50 text-xs text-gray-700 uppercase">
+                        <tr>
+                            <th scope="col" class="px-6 py-3">Task / Item</th>
+                            <th scope="col" class="px-6 py-3">Booking #</th>
+                            <th scope="col" class="px-6 py-3">Status</th>
+                            <th scope="col" class="px-6 py-3">Timestamp</th>
+                            <th scope="col" class="px-6 py-3 text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
         `;
-        const tbody = document.createElement('tbody');
-        collectionsByDriver[driverName].forEach(c => {
-            const booking = state.bookings.find(b => b.id === c.bookingId);
-            const collectedCount = c.collectedContainers?.length || 0;
-            const canCollect = collectedCount < c.qty;
-
+        
+        const tbody = driverSection.querySelector('tbody');
+        tasks.forEach(task => {
             const row = document.createElement('tr');
             row.className = 'bg-white border-b hover:bg-gray-50';
-            row.innerHTML = `
-                <td class="px-6 py-4">${c.bookingNumber}</td>
-                <td class="px-6 py-4">${booking?.type || 'N/A'}</td>
-                <td class="px-6 py-4">${ui.getStatusBadge(c.status)}</td>
-                <td class="px-6 py-4">${c.chassisName}</td>
-                <td class="px-6 py-4 text-center">
-                    ${canCollect ? `<button data-collection-id="${c.id}" class="collect-btn bg-green-500 text-white font-semibold py-1 px-3 rounded-md hover:bg-green-600 text-xs">Collect</button>` : `<span class="text-gray-400 text-xs">Complete</span>`}
-                </td>
-            `;
+            
+            if (task.type === 'collect') {
+                const booking = state.bookings.find(b => b.id === task.collection.bookingId);
+                row.innerHTML = `
+                    <td class="px-6 py-4 font-semibold">Collect ${task.qty} container(s)</td>
+                    <td class="px-6 py-4">${task.collection.bookingNumber}</td>
+                    <td class="px-6 py-4">${ui.getStatusBadge(task.collection.status)}</td>
+                    <td class="px-6 py-4 text-xs">${ui.formatTimestamp(task.collection.createdAt)}</td>
+                    <td class="px-6 py-4 text-center">
+                        <button data-collection-id="${task.collection.id}" class="collect-btn bg-green-500 text-white font-semibold py-1 px-3 rounded-md hover:bg-green-600 text-xs">Collect</button>
+                    </td>
+                `;
+            } else if (task.type === 'deliver') {
+                row.innerHTML = `
+                    <td class="px-6 py-4 font-semibold">${task.container.serial}</td>
+                    <td class="px-6 py-4">${task.container.bookingNumber}</td>
+                    <td class="px-6 py-4">${ui.getStatusBadge(task.container.status)}</td>
+                    <td class="px-6 py-4 text-xs">${ui.formatTimestamp(task.container.lastUpdated)}</td>
+                    <td class="px-6 py-4 text-center">
+                        <button data-container-id="${task.container.id}" class="deliver-btn bg-blue-500 text-white font-semibold py-1 px-3 rounded-md hover:bg-blue-600 text-xs">Deliver to Yard</button>
+                    </td>
+                `;
+            }
             tbody.appendChild(row);
         });
 
-        table.appendChild(tbody);
-        tableContainer.appendChild(table);
-        driverSection.appendChild(tableContainer);
         containerEl.appendChild(driverSection);
     }
 };
+
 
 export const renderDriversList = () => {
     const listElement = document.getElementById('drivers-list');
