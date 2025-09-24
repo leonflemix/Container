@@ -150,27 +150,56 @@ const handleCollectFormSubmit = async (e) => {
         location: parentCollection.chassisName,
         driver: parentCollection.driverName,
         bookingNumber: parentCollection.bookingNumber,
-        lastUpdated: new Date().toISOString()
+        lastUpdated: new Date().toISOString(),
+        collectedAtTimestamp: new Date().toISOString()
     };
 
     const containerRef = await firebase.addItem('containers', newContainerData);
 
     const updatedCollectedContainers = [...(parentCollection.collectedContainers || []), { containerId: containerRef.id, containerSerial: containerNumber }];
     
-    let newStatus = '📦🚚COLLECTED FROM PIER';
-    if (updatedCollectedContainers.length >= parentCollection.qty) {
-        newStatus = 'Collection Complete';
-    }
-
     await firebase.updateItem('collections', collectionId, {
         collectedContainers: updatedCollectedContainers,
-        status: newStatus
     });
 
     await firebase.updateBookingOnCollection(parentCollection.bookingId, containerRef.id);
 
     ui.closeModal('collect-modal');
 };
+
+const handleDeliverToYard = async (containerId) => {
+    if (!containerId) return;
+
+    const updateData = {
+        location: 'Yard',
+        status: '✅ At Yard',
+        deliveredAtYardTimestamp: new Date().toISOString()
+    };
+    await firebase.updateItem('containers', containerId, updateData);
+
+    const parentCollection = state.collections.find(coll => 
+        (coll.collectedContainers || []).some(cc => cc.containerId === containerId)
+    );
+
+    if (parentCollection) {
+        let allDelivered = true;
+        for (const collected of parentCollection.collectedContainers) {
+            if (collected.containerId === containerId) continue; 
+            const otherContainer = state.containers.find(c => c.id === collected.containerId);
+            if (!otherContainer || otherContainer.location !== 'Yard') {
+                allDelivered = false;
+                break;
+            }
+        }
+
+        if (allDelivered && parentCollection.collectedContainers.length === parentCollection.qty) {
+            await firebase.updateItem('collections', parentCollection.id, {
+                status: 'Collection Complete'
+            });
+        }
+    }
+};
+
 
 const handleEditFormSubmit = async (e) => {
     // ...
@@ -184,7 +213,9 @@ const addCollectionItem = async (collectionName, value) => {
 
 export function setupEventListeners() {
     document.body.addEventListener('click', (e) => {
-        const target = e.target;
+        const target = e.target.closest('button');
+        if (!target) return;
+
         const targetId = target.id;
         const targetClassList = target.classList;
         
@@ -220,6 +251,7 @@ export function setupEventListeners() {
         if (targetClassList.contains('delete-item-btn')) firebase.deleteItem(target.dataset.collection, target.dataset.id);
         if (targetClassList.contains('collect-btn')) ui.openCollectModal(target.dataset.collectionId);
         if (targetClassList.contains('collect-booking-btn')) ui.openCollectionModal(target.dataset.bookingId);
+        if (targetClassList.contains('deliver-btn')) handleDeliverToYard(target.dataset.containerId);
     });
 
     // Form Submissions
