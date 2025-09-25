@@ -202,7 +202,7 @@ const handleDeliverToYard = async (containerId) => {
 
 
 const handleEditFormSubmit = async (e) => {
-    // ...
+    // This function needs to be fully implemented based on the edit modal's dynamic content
 };
 
 const addCollectionItem = async (collectionName, value) => {
@@ -213,48 +213,58 @@ const addCollectionItem = async (collectionName, value) => {
 
 export function setupEventListeners() {
     document.body.addEventListener('click', (e) => {
-        const target = e.target.closest('button');
-        if (!target) return;
+        const target = e.target;
 
-        const targetId = target.id;
-        const targetClassList = target.classList;
-        
-        // Modals
-        if (targetId === 'addContainerBtn') ui.openModal();
-        if (targetId === 'cancel-btn') ui.closeModal('modal');
-        if (target.closest('.modal-container') && !target.closest('.bg-white')) ui.closeModal(target.closest('.modal-container').id);
-        
-        if (targetId === 'addBookingBtn') ui.openBookingModal();
-        if (targetId === 'booking-cancel-btn') ui.closeModal('booking-modal');
-        
-        if (targetId === 'createCollectionBtn') ui.openCollectionModal();
-        if (targetId === 'collection-cancel-btn') ui.closeModal('collection-modal');
-
-        if (targetId === 'collect-cancel-btn') ui.closeModal('collect-modal');
-
-        if (targetId === 'edit-cancel-btn') ui.closeModal('edit-modal');
-
-        // Page Navigation
-        if (targetClassList.contains('nav-link') || targetClassList.contains('mobile-nav-link')) {
+        // --- Navigation ---
+        const navLink = target.closest('.nav-link, .mobile-nav-link');
+        if (navLink) {
             e.preventDefault();
-            ui.showPage(target.dataset.page);
+            ui.showPage(navLink.dataset.page);
+            return;
         }
-        if (targetId === 'mobile-menu-button') {
+
+        const mobileMenuButton = target.closest('#mobile-menu-button');
+        if (mobileMenuButton) {
             document.getElementById('mobile-menu').classList.toggle('hidden');
             document.getElementById('menu-open-icon').classList.toggle('hidden');
             document.getElementById('menu-closed-icon').classList.toggle('hidden');
+            return;
+        }
+        
+        // --- Modal close on overlay click ---
+        if (target.classList.contains('modal-container')) {
+            ui.closeModal(target.id);
+            return;
         }
 
-        // Button Clicks within Grids/Lists
-        if (targetClassList.contains('edit-btn')) ui.openModal(target.dataset.id);
-        if (targetClassList.contains('edit-item-btn')) ui.openEditModal(target.dataset.collection, target.dataset.id);
-        if (targetClassList.contains('delete-item-btn')) firebase.deleteItem(target.dataset.collection, target.dataset.id);
-        if (targetClassList.contains('collect-btn')) ui.openCollectModal(target.dataset.collectionId);
-        if (targetClassList.contains('collect-booking-btn')) ui.openCollectionModal(target.dataset.bookingId);
-        if (targetClassList.contains('deliver-btn')) handleDeliverToYard(target.dataset.containerId);
+        // --- Button clicks ---
+        const button = target.closest('button');
+        if (!button) return;
+
+        const buttonId = button.id;
+        const buttonClassList = button.classList;
+
+        // Modal open/close buttons
+        if (buttonId === 'addContainerBtn') ui.openModal();
+        if (buttonId === 'addBookingBtn') ui.openBookingModal();
+        if (buttonId === 'createCollectionBtn') ui.openCollectionModal();
+        if (buttonClassList.contains('collect-btn')) ui.openCollectModal(button.dataset.collectionId);
+        if (buttonClassList.contains('collect-booking-btn')) ui.openCollectionModal(button.dataset.bookingId);
+        
+        if (buttonId === 'cancel-btn') ui.closeModal('modal');
+        if (buttonId === 'booking-cancel-btn') ui.closeModal('booking-modal');
+        if (buttonId === 'collection-cancel-btn') ui.closeModal('collection-modal');
+        if (buttonId === 'collect-cancel-btn') ui.closeModal('collect-modal');
+        if (buttonId === 'edit-cancel-btn') ui.closeModal('edit-modal');
+        
+        // Grid/List action buttons
+        if (buttonClassList.contains('edit-btn')) ui.openModal(button.dataset.id);
+        if (buttonClassList.contains('edit-item-btn')) ui.openEditModal(button.dataset.collection, button.dataset.id);
+        if (buttonClassList.contains('delete-item-btn')) firebase.deleteItem(button.dataset.collection, button.dataset.id);
+        if (buttonClassList.contains('deliver-btn')) handleDeliverToYard(button.dataset.containerId);
     });
 
-    // Form Submissions
+    // --- Form Submissions ---
     document.body.addEventListener('submit', (e) => {
         e.preventDefault();
         const formId = e.target.id;
@@ -280,10 +290,11 @@ export function setupEventListeners() {
         }
     });
     
-    // Form validation triggers
-    ['collection-form-qty', 'collection-form-booking', 'collection-form-chassis'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.addEventListener('change', ui.validateCollectionForm);
+    // --- Form validation triggers ---
+    document.body.addEventListener('change', (e) => {
+        if (['collection-form-qty', 'collection-form-booking', 'collection-form-chassis'].includes(e.target.id)) {
+            ui.validateCollectionForm();
+        }
     });
 }
 
