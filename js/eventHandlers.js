@@ -172,7 +172,7 @@ const handleDeliverToYard = async (containerId) => {
 
     const updateData = {
         location: 'Yard',
-        status: '✅ At Yard',
+        status: '📦🚚Delivered to YARD',
         deliveredAtYardTimestamp: new Date().toISOString()
     };
     await firebase.updateItem('containers', containerId, updateData);
@@ -191,6 +191,13 @@ const handleDeliverToYard = async (containerId) => {
                 break;
             }
         }
+        
+        // Also check the container we just delivered
+        const justDeliveredContainer = state.containers.find(c=>c.id === containerId);
+        if(justDeliveredContainer && justDeliveredContainer.location !== 'Yard'){
+             // This is a failsafe, but the update should handle it.
+        }
+
 
         if (allDelivered && parentCollection.collectedContainers.length === parentCollection.qty) {
             await firebase.updateItem('collections', parentCollection.id, {
