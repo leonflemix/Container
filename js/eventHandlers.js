@@ -184,20 +184,12 @@ const handleDeliverToYard = async (containerId) => {
     if (parentCollection) {
         let allDelivered = true;
         for (const collected of parentCollection.collectedContainers) {
-            if (collected.containerId === containerId) continue; 
-            const otherContainer = state.containers.find(c => c.id === collected.containerId);
-            if (!otherContainer || otherContainer.location !== 'Yard') {
+            const container = state.containers.find(c => c.id === collected.containerId);
+            if (container.id !== containerId && container.location !== 'Yard') {
                 allDelivered = false;
                 break;
             }
         }
-        
-        // Also check the container we just delivered
-        const justDeliveredContainer = state.containers.find(c=>c.id === containerId);
-        if(justDeliveredContainer && justDeliveredContainer.location !== 'Yard'){
-             // This is a failsafe, but the update should handle it.
-        }
-
 
         if (allDelivered && parentCollection.collectedContainers.length === parentCollection.qty) {
             await firebase.updateItem('collections', parentCollection.id, {
@@ -207,6 +199,41 @@ const handleDeliverToYard = async (containerId) => {
     }
 };
 
+const handleDeleteItem = async (collectionName, docId) => {
+    let itemToDelete;
+    let itemName;
+
+    switch(collectionName) {
+        case 'containers': itemToDelete = state.containers.find(i => i.id === docId); itemName = itemToDelete?.serial; break;
+        case 'drivers': itemToDelete = state.drivers.find(i => i.id === docId); itemName = itemToDelete?.name; break;
+        case 'chassis': itemToDelete = state.chassis.find(i => i.id === docId); itemName = itemToDelete?.name; break;
+        case 'locations': itemToDelete = state.locations.find(i => i.id === docId); itemName = itemToDelete?.name; break;
+        case 'statuses': itemToDelete = state.statuses.find(i => i.id === docId); itemName = itemToDelete?.description; break;
+        case 'containerTypes': itemToDelete = state.containerTypes.find(i => i.id === docId); itemName = itemToDelete?.name; break;
+        case 'bookings': itemToDelete = state.bookings.find(i => i.id === docId); itemName = itemToDelete?.number; break;
+        case 'collections': itemToDelete = state.collections.find(i => i.id === docId); itemName = itemToDelete?.bookingNumber; break;
+        default: itemToDelete = null; itemName = 'Item';
+    }
+
+    if (itemToDelete) {
+        const { id, ...data } = itemToDelete;
+        state.setLastDeletedItem({ collection: collectionName, id: docId, data: data });
+        
+        await firebase.deleteItem(collectionName, docId);
+        ui.showUndoToast(`${itemName} deleted.`);
+    } else {
+        console.error("Could not find item to delete in local state for undo.");
+        await firebase.deleteItem(collectionName, docId);
+    }
+};
+
+const handleUndo = async () => {
+    const itemToRestore = state.lastDeletedItem;
+    if (itemToRestore) {
+        await firebase.addItem(itemToRestore.collection, itemToRestore.data, itemToRestore.id);
+        ui.hideUndoToast(); 
+    }
+};
 
 const handleEditFormSubmit = async (e) => {
     // This function needs to be fully implemented based on the edit modal's dynamic content
@@ -255,6 +282,7 @@ export function setupEventListeners() {
         if (buttonId === 'addContainerBtn') ui.openModal();
         if (buttonId === 'addBookingBtn') ui.openBookingModal();
         if (buttonId === 'createCollectionBtn') ui.openCollectionModal();
+        if (buttonId === 'undo-btn') handleUndo();
         if (buttonClassList.contains('collect-btn')) ui.openCollectModal(button.dataset.collectionId);
         if (buttonClassList.contains('collect-booking-btn')) ui.openCollectionModal(button.dataset.bookingId);
         
@@ -267,7 +295,7 @@ export function setupEventListeners() {
         // Grid/List action buttons
         if (buttonClassList.contains('edit-btn')) ui.openModal(button.dataset.id);
         if (buttonClassList.contains('edit-item-btn')) ui.openEditModal(button.dataset.collection, button.dataset.id);
-        if (buttonClassList.contains('delete-item-btn')) firebase.deleteItem(button.dataset.collection, button.dataset.id);
+        if (buttonClassList.contains('delete-item-btn')) handleDeleteItem(button.dataset.collection, button.dataset.id);
         if (buttonClassList.contains('deliver-btn')) handleDeliverToYard(button.dataset.containerId);
     });
 

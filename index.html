@@ -20,6 +20,9 @@
             opacity: 0;
             visibility: hidden;
         }
+        #undo-toast {
+            transition: transform 0.3s ease-in-out;
+        }
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
         ::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
@@ -28,11 +31,19 @@
 </head>
 <body class="bg-gray-100 text-gray-800">
 
-    <!-- App Container: Navigation and Pages will be loaded here -->
-    <div id="app-container"></div>
+    <div id="app-shell">
+        <!-- The main application shell from pages/shell.html will be loaded here -->
+    </div>
 
-    <!-- Modals Container: All modals will be loaded here -->
-    <div id="modals-container"></div>
+    <div id="modal-placeholder">
+        <!-- All modals will be loaded here -->
+    </div>
+
+    <!-- Undo Toast Notification -->
+    <div id="undo-toast" class="hidden fixed bottom-5 right-5 bg-gray-800 text-white py-3 px-5 rounded-lg shadow-lg flex items-center justify-between transition-transform transform translate-y-20">
+        <span id="undo-message">Item deleted.</span>
+        <button id="undo-btn" class="ml-4 font-semibold text-blue-400 hover:text-blue-300">Undo</button>
+    </div>
     
     <!-- External JavaScript files -->
     <script src="firebase-config.js"></script>

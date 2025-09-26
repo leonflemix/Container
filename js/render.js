@@ -14,7 +14,7 @@ export const renderContainers = () => {
         state.containers.forEach(c => {
             const row = document.createElement('tr');
             row.className = 'bg-white border-b hover:bg-gray-50';
-            row.innerHTML = `<td class="px-6 py-4 font-semibold text-gray-900">${c.serial}</td><td class="px-6 py-4">${c.type || 'N/A'}</td><td class="px-6 py-4">${ui.getLocationIcon(c.location)}</td><td class="px-6 py-4">${ui.getStatusBadge(c.status)}</td><td class="px-6 py-4">${c.driver || 'N/A'}</td><td class="px-6 py-4 text-gray-500">${ui.formatTimeAgo(c.lastUpdated)}</td><td class="px-6 py-4 text-center"><button data-id="${c.id}" class="edit-btn font-medium text-blue-600 hover:underline">Update</button></td>`;
+            row.innerHTML = `<td class="px-6 py-4 font-semibold text-gray-900">${c.serial}</td><td class="px-6 py-4">${c.type || 'N/A'}</td><td class="px-6 py-4">${ui.getLocationIcon(c.location)}</td><td class="px-6 py-4">${ui.getStatusBadge(c.status)}</td><td class="px-6 py-4">${c.driver || 'N/A'}</td><td class="px-6 py-4 text-gray-500">${ui.formatTimeAgo(c.lastUpdated)}</td><td class="px-6 py-4 text-center"><button data-id="${c.id}" class="edit-btn font-medium text-blue-600 hover:underline">Update</button><button data-collection="containers" data-id="${c.id}" class="delete-item-btn font-medium text-red-600 hover:underline ml-4">Delete</button></td>`;
             tableBody.appendChild(row);
         });
     }
