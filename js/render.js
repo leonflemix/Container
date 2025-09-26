@@ -138,15 +138,17 @@ export const renderDriverDashboard = () => {
 
     const tasksByDriver = {};
 
-    // 1. Generate tasks from active collections
-    const activeCollections = state.collections.filter(c => c.status !== 'Collection Complete');
+    const activeCollections = state.collections.filter(c => c.status !== 'Collection Complete' || (c.collectedContainers || []).some(cc => {
+        const container = state.containers.find(cont => cont.id === cc.containerId);
+        return container && container.location !== 'Yard';
+    }));
+
     activeCollections.forEach(collection => {
         const driverName = collection.driverName || 'Unassigned';
         if (!tasksByDriver[driverName]) {
             tasksByDriver[driverName] = [];
         }
 
-        // Add "Deliver" tasks for already collected containers not yet at the yard
         (collection.collectedContainers || []).forEach(collected => {
             const container = state.containers.find(cont => cont.id === collected.containerId);
             if (container && container.location !== 'Yard') {
@@ -158,7 +160,6 @@ export const renderDriverDashboard = () => {
             }
         });
         
-        // Add "Collect" tasks for remaining containers in the collection
         const collectedCount = collection.collectedContainers?.length || 0;
         const remainingToCollect = collection.qty - collectedCount;
         if (remainingToCollect > 0) {
@@ -175,7 +176,6 @@ export const renderDriverDashboard = () => {
         return;
     }
 
-    // 2. Render tasks grouped by driver
     for (const driverName of Object.keys(tasksByDriver).sort()) {
         const tasks = tasksByDriver[driverName];
         if (tasks.length === 0) continue;
@@ -222,7 +222,7 @@ export const renderDriverDashboard = () => {
                     <td class="px-6 py-4 font-semibold">${task.container.serial}</td>
                     <td class="px-6 py-4">${task.container.bookingNumber}</td>
                     <td class="px-6 py-4">${ui.getStatusBadge(task.container.status)}</td>
-                    <td class="px-6 py-4 text-xs">${ui.formatTimestamp(task.container.lastUpdated)}</td>
+                    <td class="px-6 py-4 text-xs">${ui.formatTimestamp(task.container.collectedAtTimestamp)}</td>
                     <td class="px-6 py-4 text-center">
                         <button data-container-id="${task.container.id}" class="deliver-btn bg-blue-500 text-white font-semibold py-1 px-3 rounded-md hover:bg-blue-600 text-xs">Deliver to Yard</button>
                     </td>
@@ -234,7 +234,6 @@ export const renderDriverDashboard = () => {
         containerEl.appendChild(driverSection);
     }
 };
-
 
 export const renderDriversList = () => {
     const listElement = document.getElementById('drivers-list');
