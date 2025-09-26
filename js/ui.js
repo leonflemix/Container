@@ -25,15 +25,29 @@ export const formatTimestamp = (dateString) => {
 
 export const updateDateTime = () => {
     const el = document.getElementById('current-datetime');
-    const now = new Date('2025-09-20T12:07:00'); // User-specified time
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'America/Halifax' };
-    el.textContent = now.toLocaleDateString('en-CA', options) + " (Dartmouth, NS)";
+    if (el) {
+        const now = new Date('2025-09-20T12:07:00'); // User-specified time
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'America/Halifax' };
+        el.textContent = now.toLocaleDateString('en-CA', options) + " (Dartmouth, NS)";
+    }
 };
 
 export const showPage = (pageId) => {
+    // Hide all page content divs
     document.querySelectorAll('.page-content').forEach(p => p.classList.add('hidden'));
-    document.getElementById(pageId).classList.remove('hidden');
+
+    // Show the requested page
+    const pageToShow = document.getElementById(pageId);
+    if (pageToShow) {
+        pageToShow.classList.remove('hidden');
+    } else {
+        console.error(`[UI Error] Could not find page with ID: ${pageId}`);
+        // As a fallback, show the dashboard if the requested page isn't found
+        const dashboard = document.getElementById('dashboard-page');
+        if (dashboard) dashboard.classList.remove('hidden');
+    }
     
+    // Update active styles on navigation links
     const setActiveLink = (links) => links.forEach(link => {
         const isMobile = link.classList.contains('mobile-nav-link');
         if (link.dataset.page === pageId) {
@@ -49,9 +63,12 @@ export const showPage = (pageId) => {
     setActiveLink(document.querySelectorAll('.nav-link'));
     setActiveLink(document.querySelectorAll('.mobile-nav-link'));
     
+    // Close mobile menu if it's open
     const mobileMenu = document.getElementById('mobile-menu');
     if (mobileMenu && !mobileMenu.classList.contains('hidden')) { 
-        mobileMenu.classList.add('hidden'); 
+        mobileMenu.classList.add('hidden');
+        document.getElementById('menu-open-icon').classList.add('hidden');
+        document.getElementById('menu-closed-icon').classList.remove('hidden');
     }
 };
 
