@@ -1,54 +1,55 @@
 // File: js/app.js
 import { initFirebase } from './firebaseService.js';
+import * as ui from './ui.js';
 import { setupEventListeners } from './eventHandlers.js';
-import { updateDateTime } from './ui.js';
 
-/**
- * Loads an HTML file into a specified element.
- * @param {string} url - The path to the HTML file.
- * @param {string} elementId - The ID of the container element.
- */
-async function loadHTML(url, elementId) {
+async function loadHTML() {
     try {
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`Failed to load ${url}: ${response.statusText}`);
+        // Load shell
+        const shellResponse = await fetch('pages/shell.html');
+        if (!shellResponse.ok) throw new Error('Failed to load app shell');
+        document.getElementById('app-shell').innerHTML = await shellResponse.text();
+
+        // Load pages
+        const pages = ['dashboard', 'logistics', 'drivers', 'settings'];
+        const pageContainer = document.getElementById('page-container');
+        for (const page of pages) {
+            const response = await fetch(`pages/${page}.html`);
+            if(response.ok) {
+                 const content = await response.text();
+                 const pageDiv = document.createElement('div');
+                 pageDiv.id = `${page}-page`;
+                 pageDiv.className = 'page-content';
+                 if (page !== 'dashboard') {
+                     pageDiv.classList.add('hidden');
+                 }
+                 pageDiv.innerHTML = content;
+                 pageContainer.appendChild(pageDiv);
+            }
         }
-        const text = await response.text();
-        const container = document.getElementById(elementId);
-        if (container) {
-            container.insertAdjacentHTML('beforeend', text);
-        } else {
-            console.error(`Element with id "${elementId}" not found.`);
+
+        // Load modals
+        const modals = ['container', 'booking', 'collection', 'collect', 'edit'];
+        const modalPlaceholder = document.getElementById('modal-placeholder');
+        for (const modal of modals) {
+            const response = await fetch(`modals/${modal}.html`);
+             if(response.ok) {
+                modalPlaceholder.innerHTML += await response.text();
+            }
         }
     } catch (error) {
-        console.error(`Error loading HTML from ${url}:`, error);
+        console.error("Error loading initial HTML:", error);
+        document.body.innerHTML = '<p class="text-red-500 text-center p-8">Error: Could not load application components. Please check the console.</p>';
     }
 }
 
 
-/**
- * Initializes the application by loading all necessary HTML components
- * and then setting up services and event listeners.
- */
-async function initializeApp() {
-    await loadHTML('pages/shell.html', 'app-container');
-    
-    const pages = ['dashboard', 'logistics', 'drivers', 'settings'];
-    for(const page of pages) {
-        await loadHTML(`pages/${page}.html`, 'page-content-container');
-    }
-
-    const modals = ['container', 'booking', 'collection', 'collect', 'edit'];
-    for (const modal of modals) {
-        await loadHTML(`modals/${modal}.html`, 'modals-container');
-    }
-
-    updateDateTime();
-    initFirebase();
+async function initApp() {
+    await loadHTML();
+    ui.updateDateTime();
     setupEventListeners();
+    await initFirebase();
 }
 
-// --- APP START ---
-document.addEventListener('DOMContentLoaded', initializeApp);
+document.addEventListener('DOMContentLoaded', initApp);
 
