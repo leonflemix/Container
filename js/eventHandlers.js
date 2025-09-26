@@ -17,8 +17,13 @@ const handleFormSubmit = async (e) => {
         driver: document.getElementById('container-driver').value,
         lastUpdated: new Date().toISOString()
     };
-
-    if (idInput) {
+    
+    const lastDeleted = state.getLastDeletedItem();
+    if (lastDeleted && lastDeleted.collection === 'containers' && lastDeleted.data.serial === containerData.serial) {
+        // This is an undo-re-add case
+        await firebase.addItem('containers', lastDeleted.data, lastDeleted.id);
+        state.clearLastDeletedItem();
+    } else if (idInput) {
         await firebase.updateItem('containers', idInput, containerData);
     } else {
         const existing = state.containers.find(c => c.serial === serial);
@@ -185,7 +190,7 @@ const handleDeliverToYard = async (containerId) => {
         let allDelivered = true;
         for (const collected of parentCollection.collectedContainers) {
             const container = state.containers.find(c => c.id === collected.containerId);
-            if (container.id !== containerId && container.location !== 'Yard') {
+            if (container && container.location !== 'Yard') {
                 allDelivered = false;
                 break;
             }
@@ -199,42 +204,6 @@ const handleDeliverToYard = async (containerId) => {
     }
 };
 
-const handleDeleteItem = async (collectionName, docId) => {
-    let itemToDelete;
-    let itemName;
-
-    switch(collectionName) {
-        case 'containers': itemToDelete = state.containers.find(i => i.id === docId); itemName = itemToDelete?.serial; break;
-        case 'drivers': itemToDelete = state.drivers.find(i => i.id === docId); itemName = itemToDelete?.name; break;
-        case 'chassis': itemToDelete = state.chassis.find(i => i.id === docId); itemName = itemToDelete?.name; break;
-        case 'locations': itemToDelete = state.locations.find(i => i.id === docId); itemName = itemToDelete?.name; break;
-        case 'statuses': itemToDelete = state.statuses.find(i => i.id === docId); itemName = itemToDelete?.description; break;
-        case 'containerTypes': itemToDelete = state.containerTypes.find(i => i.id === docId); itemName = itemToDelete?.name; break;
-        case 'bookings': itemToDelete = state.bookings.find(i => i.id === docId); itemName = itemToDelete?.number; break;
-        case 'collections': itemToDelete = state.collections.find(i => i.id === docId); itemName = itemToDelete?.bookingNumber; break;
-        default: itemToDelete = null; itemName = 'Item';
-    }
-
-    if (itemToDelete) {
-        const { id, ...data } = itemToDelete;
-        state.setLastDeletedItem({ collection: collectionName, id: docId, data: data });
-        
-        await firebase.deleteItem(collectionName, docId);
-        ui.showUndoToast(`${itemName} deleted.`);
-    } else {
-        console.error("Could not find item to delete in local state for undo.");
-        await firebase.deleteItem(collectionName, docId);
-    }
-};
-
-const handleUndo = async () => {
-    const itemToRestore = state.lastDeletedItem;
-    if (itemToRestore) {
-        await firebase.addItem(itemToRestore.collection, itemToRestore.data, itemToRestore.id);
-        ui.hideUndoToast(); 
-    }
-};
-
 const handleEditFormSubmit = async (e) => {
     // This function needs to be fully implemented based on the edit modal's dynamic content
 };
@@ -244,24 +213,39 @@ const addCollectionItem = async (collectionName, value) => {
     await firebase.addItem(collectionName, { name: value });
 };
 
+const handleDeleteClick = (collectionName, id) => {
+    let itemData;
+    switch(collectionName) {
+        case 'containers': itemData = state.containers.find(i => i.id === id); break;
+        // Add cases for other collections if needed
+        default: itemData = state[collectionName].find(i => i.id === id);
+    }
+    
+    if (itemData) {
+        state.setLastDeletedItem({ collection: collectionName, id, data: itemData });
+        firebase.deleteItem(collectionName, id);
+        ui.showUndoToast(`Deleted ${itemData.serial || itemData.name || 'item'}.`);
+    }
+};
+
+const handleUndo = () => {
+    const lastDeleted = state.getLastDeletedItem();
+    if (lastDeleted) {
+        firebase.addItem(lastDeleted.collection, lastDeleted.data, lastDeleted.id);
+        ui.hideUndoToast();
+    }
+};
 
 export function setupEventListeners() {
     document.body.addEventListener('click', (e) => {
         const target = e.target;
+        const button = target.closest('button');
+        const navLink = target.closest('.nav-link, .mobile-nav-link');
 
         // --- Navigation ---
-        const navLink = target.closest('.nav-link, .mobile-nav-link');
         if (navLink) {
             e.preventDefault();
             ui.showPage(navLink.dataset.page);
-            return;
-        }
-
-        const mobileMenuButton = target.closest('#mobile-menu-button');
-        if (mobileMenuButton) {
-            document.getElementById('mobile-menu').classList.toggle('hidden');
-            document.getElementById('menu-open-icon').classList.toggle('hidden');
-            document.getElementById('menu-closed-icon').classList.toggle('hidden');
             return;
         }
         
@@ -271,32 +255,38 @@ export function setupEventListeners() {
             return;
         }
 
-        // --- Button clicks ---
-        const button = target.closest('button');
-        if (!button) return;
+        if (!button) return; // Exit if the clicked element is not a button or inside one
 
-        const buttonId = button.id;
-        const buttonClassList = button.classList;
+        // --- Navigation ---
+        if (button.id === 'mobile-menu-button') {
+            document.getElementById('mobile-menu').classList.toggle('hidden');
+            document.getElementById('menu-open-icon').classList.toggle('hidden');
+            document.getElementById('menu-closed-icon').classList.toggle('hidden');
+            return;
+        }
+        
+        // --- Modal open/close buttons ---
+        if (button.id === 'addContainerBtn') ui.openModal();
+        if (button.id === 'addBookingBtn') ui.openBookingModal();
+        if (button.id === 'createCollectionBtn') ui.openCollectionModal();
+        if (button.classList.contains('collect-btn')) ui.openCollectModal(button.dataset.collectionId);
+        if (button.classList.contains('collect-booking-btn')) ui.openCollectionModal(button.dataset.bookingId);
+        
+        if (button.id === 'cancel-btn') ui.closeModal('modal');
+        if (button.id === 'booking-cancel-btn') ui.closeModal('booking-modal');
+        if (button.id === 'collection-cancel-btn') ui.closeModal('collection-modal');
+        if (button.id === 'collect-cancel-btn') ui.closeModal('collect-modal');
+        if (button.id === 'edit-cancel-btn') ui.closeModal('edit-modal');
+        
+        // --- Grid/List action buttons ---
+        if (button.classList.contains('edit-btn')) ui.openModal(button.dataset.id);
+        if (button.classList.contains('edit-item-btn')) ui.openEditModal(button.dataset.collection, button.dataset.id);
+        if (button.classList.contains('delete-item-btn')) handleDeleteClick(button.dataset.collection, button.dataset.id);
+        if (button.classList.contains('deliver-btn')) handleDeliverToYard(button.dataset.containerId);
+        
+        // --- Undo ---
+        if (button.id === 'undo-btn') handleUndo();
 
-        // Modal open/close buttons
-        if (buttonId === 'addContainerBtn') ui.openModal();
-        if (buttonId === 'addBookingBtn') ui.openBookingModal();
-        if (buttonId === 'createCollectionBtn') ui.openCollectionModal();
-        if (buttonId === 'undo-btn') handleUndo();
-        if (buttonClassList.contains('collect-btn')) ui.openCollectModal(button.dataset.collectionId);
-        if (buttonClassList.contains('collect-booking-btn')) ui.openCollectionModal(button.dataset.bookingId);
-        
-        if (buttonId === 'cancel-btn') ui.closeModal('modal');
-        if (buttonId === 'booking-cancel-btn') ui.closeModal('booking-modal');
-        if (buttonId === 'collection-cancel-btn') ui.closeModal('collection-modal');
-        if (buttonId === 'collect-cancel-btn') ui.closeModal('collect-modal');
-        if (buttonId === 'edit-cancel-btn') ui.closeModal('edit-modal');
-        
-        // Grid/List action buttons
-        if (buttonClassList.contains('edit-btn')) ui.openModal(button.dataset.id);
-        if (buttonClassList.contains('edit-item-btn')) ui.openEditModal(button.dataset.collection, button.dataset.id);
-        if (buttonClassList.contains('delete-item-btn')) handleDeleteItem(button.dataset.collection, button.dataset.id);
-        if (buttonClassList.contains('deliver-btn')) handleDeliverToYard(button.dataset.containerId);
     });
 
     // --- Form Submissions ---
