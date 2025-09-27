@@ -3,6 +3,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebas
 import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, getDoc, setLogLevel, writeBatch, query, where, getDocs, arrayRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import * as state from './state.js';
+import * as render from './render.js';
+import * as ui from './ui.js';
 
 let db, auth;
 
@@ -37,14 +39,14 @@ export async function initFirebase() {
 
 function setupRealtimeListeners() {
     const collectionsConfig = {
-        containers: { stateVar: 'containers', sortKey: 'lastUpdated' },
-        drivers: { stateVar: 'drivers', sortKey: 'name' },
-        chassis: { stateVar: 'chassis', sortKey: 'name' },
-        locations: { stateVar: 'locations', sortKey: 'name' },
-        statuses: { stateVar: 'statuses', sortKey: 'description' },
-        containerTypes: { stateVar: 'containerTypes', sortKey: 'name' },
-        bookings: { stateVar: 'bookings', sortKey: 'deadline' },
-        collections: { stateVar: 'collections', sortKey: 'createdAt' }
+        containers: { stateVar: 'containers', sortKey: 'lastUpdated', renderFns: [render.renderContainers, render.renderKPIs] },
+        drivers: { stateVar: 'drivers', sortKey: 'name', renderFns: [render.renderDriversList, render.renderDriversKPIs, render.renderDriverDashboard] },
+        chassis: { stateVar: 'chassis', sortKey: 'name', renderFns: [render.renderChassisList] },
+        locations: { stateVar: 'locations', sortKey: 'name', renderFns: [() => render.renderCollectionList('locations-list', state.locations, 'locations')] },
+        statuses: { stateVar: 'statuses', sortKey: 'description', renderFns: [render.renderStatusesList] },
+        containerTypes: { stateVar: 'containerTypes', sortKey: 'name', renderFns: [() => render.renderCollectionList('container-types-list', state.containerTypes, 'containerTypes'), ui.populateDropdowns] },
+        bookings: { stateVar: 'bookings', sortKey: 'deadline', renderFns: [render.renderBookingsGrid, render.renderLogisticsKPIs, render.renderDriverDashboard] },
+        collections: { stateVar: 'collections', sortKey: 'createdAt', renderFns: [render.renderDriverDashboard, render.renderDriversKPIs, render.renderOpenCollectionsGrid, render.renderBookingsGrid] }
     };
 
     for (const [colName, config] of Object.entries(collectionsConfig)) {
@@ -57,7 +59,12 @@ function setupRealtimeListeners() {
                     data.sort((a, b) => (a[config.sortKey] || '').localeCompare(b[config.sortKey] || ''));
                 }
             }
-            state.setState(colName, data);
+            
+            // Update the central state
+            state.updateState(colName, data);
+
+            // Trigger all related render functions
+            config.renderFns.forEach(fn => fn());
         });
     }
 }
