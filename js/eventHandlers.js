@@ -20,7 +20,6 @@ const handleFormSubmit = async (e) => {
     
     const lastDeleted = state.getLastDeletedItem();
     if (lastDeleted && lastDeleted.collection === 'containers' && lastDeleted.data.serial === containerData.serial) {
-        // This is an undo-re-add case
         await firebase.addItem('containers', lastDeleted.data, lastDeleted.id);
         state.clearLastDeletedItem();
     } else if (idInput) {
@@ -216,21 +215,29 @@ const addCollectionItem = async (collectionName, value) => {
 const handleDeleteClick = (collectionName, id) => {
     let itemData;
     switch(collectionName) {
-        case 'containers': itemData = state.containers.find(i => i.id === id); break;
-        // Add cases for other collections if needed
-        default: itemData = state[collectionName].find(i => i.id === id);
-    }
-    
-    if (itemData) {
-        state.setLastDeletedItem({ collection: collectionName, id, data: itemData });
-        firebase.deleteItem(collectionName, id);
-        ui.showUndoToast(`Deleted ${itemData.serial || itemData.name || 'item'}.`);
+        case 'containers': 
+            itemData = state.containers.find(i => i.id === id); 
+            if (itemData) {
+                state.setLastDeletedItem({ collection: collectionName, id, data: itemData });
+                firebase.deleteContainerAndUpdateRelations(id); // Use the new cascading delete function
+                ui.showUndoToast(`Deleted container ${itemData.serial}.`);
+            }
+            break;
+        default: 
+            itemData = state[collectionName].find(i => i.id === id);
+            if (itemData) {
+                state.setLastDeletedItem({ collection: collectionName, id, data: itemData });
+                firebase.deleteItem(collectionName, id);
+                ui.showUndoToast(`Deleted ${itemData.name || 'item'}.`);
+            }
     }
 };
 
 const handleUndo = () => {
     const lastDeleted = state.getLastDeletedItem();
     if (lastDeleted) {
+        // Simple undo for non-container items. 
+        // A full undo for containers would require re-linking relations, which is more complex.
         firebase.addItem(lastDeleted.collection, lastDeleted.data, lastDeleted.id);
         ui.hideUndoToast();
     }
@@ -279,7 +286,6 @@ export function setupEventListeners() {
         if (button.id === 'edit-cancel-btn') ui.closeModal('edit-modal');
         
         // --- Grid/List action buttons ---
-        if (button.classList.contains('edit-btn')) ui.openModal(button.dataset.id);
         if (button.classList.contains('edit-item-btn')) ui.openEditModal(button.dataset.collection, button.dataset.id);
         if (button.classList.contains('delete-item-btn')) handleDeleteClick(button.dataset.collection, button.dataset.id);
         if (button.classList.contains('deliver-btn')) handleDeliverToYard(button.dataset.containerId);

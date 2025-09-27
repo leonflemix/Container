@@ -1,37 +1,31 @@
 // File: js/firebaseService.js
-import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, arrayUnion, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, getDoc, setLogLevel, writeBatch, query, where, getDocs, arrayRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import * as state from './state.js';
-import * as render from './render.js';
 
-let db;
+let db, auth;
 
 export async function initFirebase() {
     setLogLevel('Debug');
-    
     if (typeof window.firebaseConfig === 'undefined' || !window.firebaseConfig.projectId || window.firebaseConfig.projectId === "YOUR_PROJECT_ID") {
-        console.error("Firebase config is missing or incomplete. Please add your Firebase config in firebase-config.js for local testing.");
-        document.body.innerHTML = '<p class="text-red-500 text-center p-8">Firebase is not configured. Please check firebase-config.js and see the browser console for instructions.</p>';
+        console.error("Firebase config is missing or incomplete.");
         return;
     }
 
     const app = initializeApp(window.firebaseConfig);
     db = getFirestore(app);
-    const auth = getAuth(app);
-    state.setDb(db);
-    state.setAuth(auth);
+    auth = getAuth(app);
     
     try {
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-            await signInWithCustomToken(auth, __initial_auth_token);
+        if (typeof window.__initial_auth_token !== 'undefined' && window.__initial_auth_token) {
+            await signInWithCustomToken(auth, window.__initial_auth_token);
         } else {
             await signInAnonymously(auth);
         }
         const userId = auth.currentUser?.uid;
         if(userId) {
             console.log("Firebase Authenticated. UserID:", userId);
-            state.setUserId(userId);
             setupRealtimeListeners();
         } else {
              console.error("Firebase Authentication failed.");
@@ -41,18 +35,44 @@ export async function initFirebase() {
     }
 }
 
-export async function addItem(collectionName, data, docId = null) {
+function setupRealtimeListeners() {
+    const collectionsConfig = {
+        containers: { stateVar: 'containers', sortKey: 'lastUpdated' },
+        drivers: { stateVar: 'drivers', sortKey: 'name' },
+        chassis: { stateVar: 'chassis', sortKey: 'name' },
+        locations: { stateVar: 'locations', sortKey: 'name' },
+        statuses: { stateVar: 'statuses', sortKey: 'description' },
+        containerTypes: { stateVar: 'containerTypes', sortKey: 'name' },
+        bookings: { stateVar: 'bookings', sortKey: 'deadline' },
+        collections: { stateVar: 'collections', sortKey: 'createdAt' }
+    };
+
+    for (const [colName, config] of Object.entries(collectionsConfig)) {
+        onSnapshot(collection(db, `/artifacts/${window.appId}/public/data/${colName}`), (snapshot) => {
+            const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            
+            if (config.sortKey) {
+                data.sort((a, b) => (b[config.sortKey] || '').localeCompare(a[config.sortKey] || ''));
+                if (['name', 'description'].includes(config.sortKey)) {
+                    data.sort((a, b) => (a[config.sortKey] || '').localeCompare(b[config.sortKey] || ''));
+                }
+            }
+            state.setState(colName, data);
+        });
+    }
+}
+
+export async function addItem(collectionName, data, id = null) {
     try {
-        if (docId) {
-            await setDoc(doc(db, `/artifacts/${window.appId}/public/data/${collectionName}`, docId), data);
-            return { id: docId };
+        if (id) {
+            await setDoc(doc(db, `/artifacts/${window.appId}/public/data/${collectionName}`, id), data);
+            return { id };
         } else {
             const docRef = await addDoc(collection(db, `/artifacts/${window.appId}/public/data/${collectionName}`), data);
             return docRef;
         }
     } catch (error) {
         console.error(`Error adding to ${collectionName}:`, error);
-        return null;
     }
 }
 
@@ -60,9 +80,10 @@ export async function updateItem(collectionName, docId, data) {
     try {
         await updateDoc(doc(db, `/artifacts/${window.appId}/public/data/${collectionName}`, docId), data);
     } catch (error) {
-        console.error(`Error updating item in ${collectionName}:`, error);
+        console.error(`Error updating ${collectionName}:`, error);
     }
 }
+
 
 export async function deleteItem(collectionName, docId) {
     try {
@@ -72,34 +93,60 @@ export async function deleteItem(collectionName, docId) {
     }
 }
 
+export async function deleteContainerAndUpdateRelations(containerId) {
+    const batch = writeBatch(db);
+    const containerRef = doc(db, `/artifacts/${window.appId}/public/data/containers`, containerId);
+
+    try {
+        const containerDoc = await getDoc(containerRef);
+        if (!containerDoc.exists()) {
+            console.error("Container to delete not found.");
+            return;
+        }
+        const containerData = containerDoc.data();
+        
+        // Find parent booking and prepare update
+        if (containerData.bookingNumber) {
+            const bookingsQuery = query(collection(db, `/artifacts/${window.appId}/public/data/bookings`), where("number", "==", containerData.bookingNumber));
+            const bookingSnapshot = await getDocs(bookingsQuery);
+            if (!bookingSnapshot.empty) {
+                const bookingDoc = bookingSnapshot.docs[0];
+                batch.update(bookingDoc.ref, {
+                    assignedContainers: arrayRemove(containerId)
+                });
+            }
+        }
+
+        // Find parent collection and prepare update
+        const collectionsQuery = query(collection(db, `/artifacts/${window.appId}/public/data/collections`), where("bookingNumber", "==", containerData.bookingNumber));
+        const collectionsSnapshot = await getDocs(collectionsQuery);
+        collectionsSnapshot.forEach(docSnap => {
+            const collectionData = docSnap.data();
+            const updatedCollected = (collectionData.collectedContainers || []).filter(c => c.containerId !== containerId);
+            if (updatedCollected.length < (collectionData.collectedContainers || []).length) {
+                batch.update(docSnap.ref, { collectedContainers: updatedCollected });
+            }
+        });
+
+        // Prepare container deletion
+        batch.delete(containerRef);
+
+        // Commit all batched writes
+        await batch.commit();
+
+    } catch (error) {
+        console.error("Error during cascading delete of container:", error);
+    }
+}
+
+
 export async function updateBookingOnCollection(bookingId, containerId) {
     try {
         await updateDoc(doc(db, `/artifacts/${window.appId}/public/data/bookings`, bookingId), {
             assignedContainers: arrayUnion(containerId)
         });
     } catch (error) {
-        console.error("Error updating booking on collection:", error);
-    }
-}
-
-function setupRealtimeListeners() {
-    const collectionsConfig = {
-        containers: render.renderContainers,
-        drivers: () => { render.renderDriversList(); render.renderDriversKPIs(); render.renderDriverDashboard(); },
-        chassis: render.renderChassisList,
-        locations: () => { render.renderCollectionList('locations-list', state.locations, 'locations'); render.renderKPIs(); },
-        statuses: () => { render.renderStatusesList(); render.renderDriverDashboard(); render.renderContainers(); },
-        containerTypes: () => render.renderCollectionList('container-types-list', state.containerTypes, 'containerTypes'),
-        bookings: () => { render.renderBookingsGrid(); render.renderLogisticsKPIs(); render.renderDriverDashboard(); },
-        collections: () => { render.renderDriverDashboard(); render.renderDriversKPIs(); render.renderOpenCollectionsGrid(); render.renderBookingsGrid(); }
-    };
-
-    for (const [colName, renderFn] of Object.entries(collectionsConfig)) {
-        onSnapshot(collection(db, `/artifacts/${window.appId}/public/data/${colName}`), (snapshot) => {
-            const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            state.updateState(colName, data);
-            renderFn();
-        });
+        console.error("Error updating booking with assigned container:", error);
     }
 }
 
