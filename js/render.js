@@ -43,19 +43,20 @@ export const renderLogisticsKPIs = () => {
     if (!kpiContainer) return;
 
     const openBookings = state.bookings.filter(b => (b.assignedContainers?.length || 0) < b.qty);
-    const totalQtyRequired = openBookings.reduce((sum, b) => sum + b.qty, 0);
+    const totalQtyRequired = openBookings.reduce((sum, b) => sum + (b.qty || 0), 0);
     
-    const totalInProcess = state.collections.filter(c => c.status !== 'Collection Complete').reduce((sum, c) => sum + c.qty, 0);
-
-    const awaitingCollection = totalQtyRequired - totalInProcess;
+    const totalInProcess = state.collections.reduce((sum, c) => sum + (c.qty || 0), 0);
+    const collectedCount = state.containers.filter(c => c.bookingNumber).length;
+    const awaitingCollection = totalInProcess - collectedCount;
 
     kpiContainer.innerHTML = `
         <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200"><h3 class="text-sm font-medium text-gray-500">Open Bookings</h3><p class="text-3xl font-bold mt-2">${openBookings.length}</p></div>
         <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200"><h3 class="text-sm font-medium text-gray-500">Total Containers Required</h3><p class="text-3xl font-bold mt-2 text-gray-800">${totalQtyRequired}</p></div>
         <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200"><h3 class="text-sm font-medium text-gray-500">Containers In Process</h3><p class="text-3xl font-bold mt-2 text-amber-600">${totalInProcess}</p></div>
-        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200"><h3 class="text-sm font-medium text-gray-500">Awaiting Collection</h3><p class="text-3xl font-bold mt-2 text-red-600">${awaitingCollection}</p></div>
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200"><h3 class="text-sm font-medium text-gray-500">Awaiting Collection</h3><p class="text-3xl font-bold mt-2 text-red-600">${awaitingCollection > 0 ? awaitingCollection : 0}</p></div>
     `;
 };
+
 
 export const renderDriversKPIs = () => {
     const kpiContainer = document.getElementById('drivers-kpi-cards');
@@ -84,7 +85,7 @@ export const renderBookingsGrid = () => {
         noBookingsMessage.classList.add('hidden');
         state.bookings.forEach(b => {
             const collectionsForBooking = state.collections.filter(c => c.bookingId === b.id);
-            const inProcessCount = collectionsForBooking.reduce((sum, c) => sum + c.qty, 0);
+            const inProcessCount = collectionsForBooking.reduce((sum, c) => sum + (c.qty || 0), 0);
             
             const row = document.createElement('tr');
             row.className = 'bg-white border-b hover:bg-gray-50';
