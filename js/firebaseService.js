@@ -46,7 +46,7 @@ function setupRealtimeListeners() {
         statuses: { stateVar: 'statuses', sortKey: 'description', renderFns: [render.renderStatusesList] },
         containerTypes: { stateVar: 'containerTypes', sortKey: 'name', renderFns: [() => render.renderCollectionList('container-types-list', state.containerTypes, 'containerTypes'), ui.populateDropdowns] },
         bookings: { stateVar: 'bookings', sortKey: 'deadline', renderFns: [render.renderBookingsGrid, render.renderLogisticsKPIs, render.renderDriverDashboard] },
-        collections: { stateVar: 'collections', sortKey: 'createdAt', renderFns: [render.renderDriverDashboard, render.renderDriversKPIs, render.renderOpenCollectionsGrid, render.renderBookingsGrid] }
+        collections: { stateVar: 'collections', sortKey: 'createdAt', renderFns: [render.renderDriverDashboard, render.renderDriversKPIs, render.renderOpenCollectionsGrid, render.renderBookingsGrid, render.renderLogisticsKPIs] }
     };
 
     for (const [colName, config] of Object.entries(collectionsConfig)) {
@@ -60,10 +60,7 @@ function setupRealtimeListeners() {
                 }
             }
             
-            // Update the central state
             state.updateState(colName, data);
-
-            // Trigger all related render functions
             config.renderFns.forEach(fn => fn());
         });
     }
@@ -112,7 +109,7 @@ export async function deleteContainerAndUpdateRelations(containerId) {
         }
         const containerData = containerDoc.data();
         
-        // Find parent booking and prepare update
+        // Find parent booking and remove container from assigned list
         if (containerData.bookingNumber) {
             const bookingsQuery = query(collection(db, `/artifacts/${window.appId}/public/data/bookings`), where("number", "==", containerData.bookingNumber));
             const bookingSnapshot = await getDocs(bookingsQuery);
@@ -124,21 +121,31 @@ export async function deleteContainerAndUpdateRelations(containerId) {
             }
         }
 
-        // Find parent collection and prepare update
+        // Find parent collection, remove container, and decrement its quantity
         const collectionsQuery = query(collection(db, `/artifacts/${window.appId}/public/data/collections`), where("bookingNumber", "==", containerData.bookingNumber));
         const collectionsSnapshot = await getDocs(collectionsQuery);
+        
         collectionsSnapshot.forEach(docSnap => {
             const collectionData = docSnap.data();
-            const updatedCollected = (collectionData.collectedContainers || []).filter(c => c.containerId !== containerId);
-            if (updatedCollected.length < (collectionData.collectedContainers || []).length) {
-                batch.update(docSnap.ref, { collectedContainers: updatedCollected });
+            const collectedContainers = collectionData.collectedContainers || [];
+            const containerInCollection = collectedContainers.find(c => c.containerId === containerId);
+
+            if (containerInCollection) {
+                const updatedCollected = collectedContainers.filter(c => c.containerId !== containerId);
+                const newQty = (collectionData.qty || 0) > 0 ? collectionData.qty - 1 : 0;
+
+                if (newQty === 0) {
+                    batch.delete(docSnap.ref); // Delete the collection if it's now empty
+                } else {
+                    batch.update(docSnap.ref, { 
+                        collectedContainers: updatedCollected,
+                        qty: newQty
+                    });
+                }
             }
         });
 
-        // Prepare container deletion
         batch.delete(containerRef);
-
-        // Commit all batched writes
         await batch.commit();
 
     } catch (error) {
