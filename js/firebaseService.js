@@ -121,7 +121,7 @@ export async function deleteContainerAndUpdateRelations(containerId) {
             }
         }
 
-        // Find parent collection, remove container, and decrement its quantity
+        // Find parent collection and remove the container from it
         const collectionsQuery = query(collection(db, `/artifacts/${window.appId}/public/data/collections`), where("bookingNumber", "==", containerData.bookingNumber));
         const collectionsSnapshot = await getDocs(collectionsQuery);
         
@@ -132,10 +132,11 @@ export async function deleteContainerAndUpdateRelations(containerId) {
 
             if (containerInCollection) {
                 const updatedCollected = collectedContainers.filter(c => c.containerId !== containerId);
+                // Decrement the quantity of the collection itself
                 const newQty = (collectionData.qty || 0) > 0 ? collectionData.qty - 1 : 0;
 
                 if (newQty === 0) {
-                    batch.delete(docSnap.ref); // Delete the collection if it's now empty
+                    batch.delete(docSnap.ref); // Delete collection if it becomes empty
                 } else {
                     batch.update(docSnap.ref, { 
                         collectedContainers: updatedCollected,
