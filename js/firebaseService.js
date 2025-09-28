@@ -5,6 +5,7 @@ import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc
 import * as state from './state.js';
 import * as render from './render.js';
 import * as ui from './ui.js';
+import { updateReports, populateDriverFilter } from './reports.js';
 
 let db, auth;
 
@@ -39,25 +40,22 @@ export async function initFirebase() {
 
 function setupRealtimeListeners() {
     const collectionsConfig = {
-        containers: { stateVar: 'containers', sortKey: 'lastUpdated', renderFns: [render.renderContainers, render.renderKPIs] },
-        drivers: { stateVar: 'drivers', sortKey: 'name', renderFns: [render.renderDriversList, render.renderDriversKPIs, render.renderDriverDashboard] },
-        chassis: { stateVar: 'chassis', sortKey: 'name', renderFns: [render.renderChassisList] },
-        locations: { stateVar: 'locations', sortKey: 'name', renderFns: [() => render.renderCollectionList('locations-list', state.locations, 'locations')] },
-        statuses: { stateVar: 'statuses', sortKey: 'description', renderFns: [render.renderStatusesList] },
-        containerTypes: { stateVar: 'containerTypes', sortKey: 'name', renderFns: [() => render.renderCollectionList('container-types-list', state.containerTypes, 'containerTypes'), ui.populateDropdowns] },
-        bookings: { stateVar: 'bookings', sortKey: 'deadline', renderFns: [render.renderBookingsGrid, render.renderLogisticsKPIs, render.renderDriverDashboard] },
-        collections: { stateVar: 'collections', sortKey: 'createdAt', renderFns: [render.renderDriverDashboard, render.renderDriversKPIs, render.renderOpenCollectionsGrid, render.renderBookingsGrid, render.renderLogisticsKPIs] }
+        containers: { renderFns: [render.renderContainers, render.renderKPIs, updateReports] },
+        drivers: { sortKey: 'name', renderFns: [render.renderDriversList, render.renderDriversKPIs, render.renderDriverDashboard, populateDriverFilter, updateReports] },
+        chassis: { sortKey: 'name', renderFns: [render.renderChassisList] },
+        locations: { sortKey: 'name', renderFns: [() => render.renderCollectionList('locations-list', state.locations, 'locations')] },
+        statuses: { sortKey: 'description', renderFns: [render.renderStatusesList] },
+        containerTypes: { sortKey: 'name', renderFns: [() => render.renderCollectionList('container-types-list', state.containerTypes, 'containerTypes'), ui.populateDropdowns] },
+        bookings: { sortKey: 'deadline', renderFns: [render.renderBookingsGrid, render.renderLogisticsKPIs, render.renderDriverDashboard] },
+        collections: { sortKey: 'createdAt', renderFns: [render.renderDriverDashboard, render.renderDriversKPIs, render.renderOpenCollectionsGrid, render.renderBookingsGrid, render.renderLogisticsKPIs, updateReports] }
     };
 
     for (const [colName, config] of Object.entries(collectionsConfig)) {
         onSnapshot(collection(db, `/artifacts/${window.appId}/public/data/${colName}`), (snapshot) => {
-            const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            let data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             
             if (config.sortKey) {
-                data.sort((a, b) => (b[config.sortKey] || '').localeCompare(a[config.sortKey] || ''));
-                if (['name', 'description'].includes(config.sortKey)) {
-                    data.sort((a, b) => (a[config.sortKey] || '').localeCompare(b[config.sortKey] || ''));
-                }
+                 data.sort((a, b) => (a[config.sortKey] || '').localeCompare(b[config.sortKey] || ''));
             }
             
             state.updateState(colName, data);
@@ -109,7 +107,6 @@ export async function deleteContainerAndUpdateRelations(containerId) {
         }
         const containerData = containerDoc.data();
         
-        // Find parent booking and remove container from assigned list
         if (containerData.bookingNumber) {
             const bookingsQuery = query(collection(db, `/artifacts/${window.appId}/public/data/bookings`), where("number", "==", containerData.bookingNumber));
             const bookingSnapshot = await getDocs(bookingsQuery);
@@ -121,7 +118,6 @@ export async function deleteContainerAndUpdateRelations(containerId) {
             }
         }
 
-        // Find parent collection and remove the container from it
         const collectionsQuery = query(collection(db, `/artifacts/${window.appId}/public/data/collections`), where("bookingNumber", "==", containerData.bookingNumber));
         const collectionsSnapshot = await getDocs(collectionsQuery);
         
@@ -132,11 +128,10 @@ export async function deleteContainerAndUpdateRelations(containerId) {
 
             if (containerInCollection) {
                 const updatedCollected = collectedContainers.filter(c => c.containerId !== containerId);
-                // Decrement the quantity of the collection itself
                 const newQty = (collectionData.qty || 0) > 0 ? collectionData.qty - 1 : 0;
 
                 if (newQty === 0) {
-                    batch.delete(docSnap.ref); // Delete collection if it becomes empty
+                    batch.delete(docSnap.ref); 
                 } else {
                     batch.update(docSnap.ref, { 
                         collectedContainers: updatedCollected,

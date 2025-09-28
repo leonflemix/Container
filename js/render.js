@@ -5,16 +5,31 @@ import * as ui from './ui.js';
 export const renderContainers = () => {
     const tableBody = document.getElementById('container-table-body');
     const noContainersMessage = document.getElementById('no-containers-message');
+    
+    // Filter for containers that are part of an active collection and not yet returned to the pier.
+    const activeContainers = state.containers.filter(c => c.bookingNumber);
+
     tableBody.innerHTML = '';
-    if (state.containers.length === 0) {
+    if (activeContainers.length === 0) {
         noContainersMessage.classList.remove('hidden');
-        noContainersMessage.querySelector('p').textContent = 'No containers found. Click "Add New Container" to get started.';
+        noContainersMessage.querySelector('p').textContent = 'No active containers found.';
     } else {
         noContainersMessage.classList.add('hidden');
-        state.containers.forEach(c => {
+        activeContainers.forEach(c => {
             const row = document.createElement('tr');
             row.className = 'bg-white border-b hover:bg-gray-50';
-            row.innerHTML = `<td class="px-6 py-4 font-semibold text-gray-900">${c.serial}</td><td class="px-6 py-4">${c.type || 'N/A'}</td><td class="px-6 py-4">${ui.getLocationIcon(c.location)}</td><td class="px-6 py-4">${ui.getStatusBadge(c.status)}</td><td class="px-6 py-4">${c.driver || 'N/A'}</td><td class="px-6 py-4 text-gray-500">${ui.formatTimeAgo(c.lastUpdated)}</td><td class="px-6 py-4 text-center"><button data-collection="containers" data-id="${c.id}" class="edit-item-btn font-medium text-blue-600 hover:underline mr-2">Edit</button><button data-collection="containers" data-id="${c.id}" class="delete-item-btn font-medium text-red-600 hover:underline">Delete</button></td>`;
+            row.innerHTML = `
+                <td class="px-6 py-4 font-semibold text-gray-900">${c.serial}</td>
+                <td class="px-6 py-4">${c.bookingNumber || 'N/A'}</td>
+                <td class="px-6 py-4">${c.type || 'N/A'}</td>
+                <td class="px-6 py-4">${ui.getLocationIcon(c.location)}</td>
+                <td class="px-6 py-4">${ui.getStatusBadge(c.status)}</td>
+                <td class="px-6 py-4 text-gray-500">${c.deliveredAtYardTimestamp ? ui.formatTimestamp(c.deliveredAtYardTimestamp) : 'N/A'}</td>
+                <td class="px-6 py-4 text-center">
+                    <button data-id="${c.id}" class="edit-btn font-medium text-blue-600 hover:underline mr-2">Edit</button>
+                    <button data-collection="containers" data-id="${c.id}" class="delete-item-btn font-medium text-red-600 hover:underline">Delete</button>
+                </td>
+            `;
             tableBody.appendChild(row);
         });
     }
@@ -22,6 +37,7 @@ export const renderContainers = () => {
 
 export const renderKPIs = () => {
     const kpiContainer = document.getElementById('kpi-cards');
+    if(!kpiContainer) return;
     kpiContainer.innerHTML = '';
     
     const totalCard = document.createElement('div');
@@ -44,10 +60,8 @@ export const renderLogisticsKPIs = () => {
 
     const openBookings = state.bookings.filter(b => (b.assignedContainers?.length || 0) < b.qty);
     const totalQtyRequired = openBookings.reduce((sum, b) => sum + (b.qty || 0), 0);
-    
     const totalInProcess = state.collections.reduce((sum, c) => sum + (c.qty || 0), 0);
-    const collectedCount = state.containers.filter(c => c.bookingNumber).length;
-    const awaitingCollection = totalInProcess - collectedCount;
+    const awaitingCollection = totalInProcess - state.containers.filter(c => c.bookingNumber).length;
 
     kpiContainer.innerHTML = `
         <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200"><h3 class="text-sm font-medium text-gray-500">Open Bookings</h3><p class="text-3xl font-bold mt-2">${openBookings.length}</p></div>
@@ -56,7 +70,6 @@ export const renderLogisticsKPIs = () => {
         <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200"><h3 class="text-sm font-medium text-gray-500">Awaiting Collection</h3><p class="text-3xl font-bold mt-2 text-red-600">${awaitingCollection > 0 ? awaitingCollection : 0}</p></div>
     `;
 };
-
 
 export const renderDriversKPIs = () => {
     const kpiContainer = document.getElementById('drivers-kpi-cards');
@@ -76,6 +89,7 @@ export const renderDriversKPIs = () => {
 export const renderBookingsGrid = () => {
     const bookingsGridBody = document.getElementById('bookings-grid-body');
     const noBookingsMessage = document.getElementById('no-bookings-message');
+    if (!bookingsGridBody) return;
     bookingsGridBody.innerHTML = '';
     
     if (state.bookings.length === 0) {
@@ -110,6 +124,7 @@ export const renderBookingsGrid = () => {
 export const renderOpenCollectionsGrid = () => {
     const openCollectionsGridBody = document.getElementById('open-collections-grid-body');
     const noOpenCollectionsMessage = document.getElementById('no-open-collections-message');
+    if (!openCollectionsGridBody) return;
     openCollectionsGridBody.innerHTML = '';
     const openCollections = state.collections.filter(c => c.status !== 'Collection Complete');
     if (openCollections.length === 0) {
@@ -137,6 +152,7 @@ export const renderOpenCollectionsGrid = () => {
 
 export const renderDriverDashboard = () => {
     const containerEl = document.getElementById('driver-collections-container');
+    if (!containerEl) return;
     containerEl.innerHTML = '';
 
     const tasksByDriver = {};
@@ -240,6 +256,7 @@ export const renderDriverDashboard = () => {
 
 export const renderDriversList = () => {
     const listElement = document.getElementById('drivers-list');
+    if (!listElement) return;
     listElement.innerHTML = '';
     state.drivers.forEach(driver => {
         const li = document.createElement('li');
@@ -255,6 +272,7 @@ export const renderDriversList = () => {
 
 export const renderChassisList = () => {
     const listElement = document.getElementById('chassis-list');
+    if (!listElement) return;
     listElement.innerHTML = '';
     state.chassis.forEach(item => {
         const li = document.createElement('li');
@@ -271,6 +289,7 @@ export const renderChassisList = () => {
 
 export const renderStatusesList = () => {
     const listElement = document.getElementById('statuses-list');
+    if (!listElement) return;
     listElement.innerHTML = '';
     state.statuses.forEach(status => {
         const li = document.createElement('li');
@@ -285,6 +304,7 @@ export const renderStatusesList = () => {
 
 export const renderCollectionList = (elementId, items, collectionName) => {
     const listElement = document.getElementById(elementId);
+    if (!listElement) return;
     listElement.innerHTML = '';
     items.forEach(item => {
         const li = document.createElement('li');
