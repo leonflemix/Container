@@ -169,8 +169,8 @@ export const renderDriverDashboard = () => {
 
         (collection.collectedContainers || []).forEach(collected => {
             const container = state.containers.find(cont => cont.id === collected.containerId);
-            if (container && container.location === 'Yard' && container.status !== 'Loaded') {
-                 tasksByDriver[driverName].push({
+            if (container && container.location !== 'Yard') {
+                tasksByDriver[driverName].push({
                     type: 'deliver',
                     container: container,
                     collection: collection

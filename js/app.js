@@ -12,7 +12,7 @@ async function loadHTML() {
         const pageContainer = document.getElementById('page-container');
         if (!pageContainer) throw new Error('#page-container not found in shell.html');
         
-        const pages = ['dashboard', 'logistics', 'drivers', 'reports', 'settings'];
+        const pages = ['dashboard', 'logistics', 'drivers', 'operators', 'reports', 'settings'];
         for (const page of pages) {
             const response = await fetch(`pages/${page}.html`);
             if (response.ok) {
