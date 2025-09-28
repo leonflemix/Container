@@ -40,10 +40,10 @@ export async function initFirebase() {
 
 function setupRealtimeListeners() {
     const collectionsConfig = {
-        containers: { renderFns: [render.renderContainers, render.renderKPIs, updateReports] },
+        containers: { renderFns: [render.renderContainers, render.renderKPIs, updateReports, render.renderOperatorDashboard] },
         drivers: { sortKey: 'name', renderFns: [render.renderDriversList, render.renderDriversKPIs, render.renderDriverDashboard, populateDriverFilter, updateReports] },
         chassis: { sortKey: 'name', renderFns: [render.renderChassisList] },
-        locations: { sortKey: 'name', renderFns: [() => render.renderCollectionList('locations-list', state.locations, 'locations')] },
+        locations: { sortKey: 'name', renderFns: [() => render.renderCollectionList('locations-list', state.locations, 'locations'), render.renderOperatorDashboard] },
         statuses: { sortKey: 'description', renderFns: [render.renderStatusesList] },
         containerTypes: { sortKey: 'name', renderFns: [() => render.renderCollectionList('container-types-list', state.containerTypes, 'containerTypes'), ui.populateDropdowns] },
         bookings: { sortKey: 'deadline', renderFns: [render.renderBookingsGrid, render.renderLogisticsKPIs, render.renderDriverDashboard] },

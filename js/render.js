@@ -6,8 +6,7 @@ export const renderContainers = () => {
     const tableBody = document.getElementById('container-table-body');
     const noContainersMessage = document.getElementById('no-containers-message');
     
-    // Filter for containers that are part of an active collection and not yet returned to the pier.
-    const activeContainers = state.containers.filter(c => c.bookingNumber);
+    const activeContainers = state.containers.filter(c => c.bookingNumber && c.status !== 'Returned to Pier');
 
     tableBody.innerHTML = '';
     if (activeContainers.length === 0) {
@@ -170,8 +169,8 @@ export const renderDriverDashboard = () => {
 
         (collection.collectedContainers || []).forEach(collected => {
             const container = state.containers.find(cont => cont.id === collected.containerId);
-            if (container && container.location !== 'Yard') {
-                tasksByDriver[driverName].push({
+            if (container && container.location === 'Yard' && container.status !== 'Loaded') {
+                 tasksByDriver[driverName].push({
                     type: 'deliver',
                     container: container,
                     collection: collection
@@ -251,6 +250,66 @@ export const renderDriverDashboard = () => {
         });
 
         containerEl.appendChild(driverSection);
+    }
+};
+
+export const renderOperatorDashboard = () => {
+    const containerEl = document.getElementById('operator-tasks-container');
+    if (!containerEl) return;
+    containerEl.innerHTML = '';
+
+    const containersAtYard = state.containers.filter(c => c.location === 'Yard' && c.status === '📦🚚Delivered to YARD');
+
+    if (containersAtYard.length === 0) {
+        containerEl.innerHTML = '<div class="text-center py-12 text-gray-500"><p>No containers awaiting loading at the yard.</p></div>';
+        return;
+    }
+    
+    const tasksByLocation = containersAtYard.reduce((acc, container) => {
+        const locationName = container.location || 'Yard';
+        if (!acc[locationName]) {
+            acc[locationName] = [];
+        }
+        acc[locationName].push(container);
+        return acc;
+    }, {});
+
+    for (const locationName of Object.keys(tasksByLocation)) {
+        const locationSection = document.createElement('div');
+        locationSection.className = 'bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-8';
+
+        locationSection.innerHTML = `
+            <div class="p-4 border-b border-gray-200"><h2 class="text-xl font-semibold">Location: ${locationName}</h2></div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left">
+                    <thead class="bg-gray-50 text-xs text-gray-700 uppercase">
+                        <tr>
+                            <th scope="col" class="px-6 py-3">Container #</th>
+                            <th scope="col" class="px-6 py-3">Type</th>
+                            <th scope="col" class="px-6 py-3">Inserted Timestamp</th>
+                            <th scope="col" class="px-6 py-3 text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        `;
+
+        const tbody = locationSection.querySelector('tbody');
+        tasksByLocation[locationName].forEach(container => {
+            const row = document.createElement('tr');
+            row.className = 'bg-white border-b';
+            row.innerHTML = `
+                <td class="px-6 py-4 font-semibold">${container.serial}</td>
+                <td class="px-6 py-4">${container.type}</td>
+                <td class="px-6 py-4">${ui.formatTimestamp(container.deliveredAtYardTimestamp)}</td>
+                <td class="px-6 py-4 text-center">
+                    <button data-container-id="${container.id}" class="loaded-btn bg-purple-600 text-white font-semibold py-1 px-3 rounded-md hover:bg-purple-700 text-xs">Loaded</button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+        containerEl.appendChild(locationSection);
     }
 };
 

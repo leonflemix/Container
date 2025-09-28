@@ -203,6 +203,17 @@ const handleDeliverToYard = async (containerId) => {
     }
 };
 
+const handleLoaded = async (containerId) => {
+    if (!containerId) return;
+
+    const updateData = {
+        status: 'Loaded',
+        loadedTimestamp: new Date().toISOString()
+    };
+    await firebase.updateItem('containers', containerId, updateData);
+};
+
+
 const handleEditFormSubmit = async (e) => {
     // This function needs to be fully implemented based on the edit modal's dynamic content
 };
@@ -219,7 +230,7 @@ const handleDeleteClick = (collectionName, id) => {
             itemData = state.containers.find(i => i.id === id); 
             if (itemData) {
                 state.setLastDeletedItem({ collection: collectionName, id, data: itemData });
-                firebase.deleteContainerAndUpdateRelations(id); // Use the new cascading delete function
+                firebase.deleteContainerAndUpdateRelations(id); 
                 ui.showUndoToast(`Deleted container ${itemData.serial}.`);
             }
             break;
@@ -236,8 +247,6 @@ const handleDeleteClick = (collectionName, id) => {
 const handleUndo = () => {
     const lastDeleted = state.getLastDeletedItem();
     if (lastDeleted) {
-        // Simple undo for non-container items. 
-        // A full undo for containers would require re-linking relations, which is more complex.
         firebase.addItem(lastDeleted.collection, lastDeleted.data, lastDeleted.id);
         ui.hideUndoToast();
     }
@@ -249,22 +258,19 @@ export function setupEventListeners() {
         const button = target.closest('button');
         const navLink = target.closest('.nav-link, .mobile-nav-link');
 
-        // --- Navigation ---
         if (navLink) {
             e.preventDefault();
             ui.showPage(navLink.dataset.page);
             return;
         }
         
-        // --- Modal close on overlay click ---
         if (target.classList.contains('modal-container')) {
             ui.closeModal(target.id);
             return;
         }
 
-        if (!button) return; // Exit if the clicked element is not a button or inside one
+        if (!button) return;
 
-        // --- Navigation ---
         if (button.id === 'mobile-menu-button') {
             document.getElementById('mobile-menu').classList.toggle('hidden');
             document.getElementById('menu-open-icon').classList.toggle('hidden');
@@ -272,7 +278,6 @@ export function setupEventListeners() {
             return;
         }
         
-        // --- Modal open/close buttons ---
         if (button.id === 'addContainerBtn') ui.openModal();
         if (button.id === 'addBookingBtn') ui.openBookingModal();
         if (button.id === 'createCollectionBtn') ui.openCollectionModal();
@@ -285,17 +290,15 @@ export function setupEventListeners() {
         if (button.id === 'collect-cancel-btn') ui.closeModal('collect-modal');
         if (button.id === 'edit-cancel-btn') ui.closeModal('edit-modal');
         
-        // --- Grid/List action buttons ---
         if (button.classList.contains('edit-item-btn')) ui.openEditModal(button.dataset.collection, button.dataset.id);
         if (button.classList.contains('delete-item-btn')) handleDeleteClick(button.dataset.collection, button.dataset.id);
         if (button.classList.contains('deliver-btn')) handleDeliverToYard(button.dataset.containerId);
+        if (button.classList.contains('loaded-btn')) handleLoaded(button.dataset.containerId);
         
-        // --- Undo ---
         if (button.id === 'undo-btn') handleUndo();
 
     });
 
-    // --- Form Submissions ---
     document.body.addEventListener('submit', (e) => {
         e.preventDefault();
         const formId = e.target.id;
@@ -321,7 +324,6 @@ export function setupEventListeners() {
         }
     });
     
-    // --- Form validation triggers ---
     document.body.addEventListener('change', (e) => {
         if (['collection-form-qty', 'collection-form-booking', 'collection-form-chassis'].includes(e.target.id)) {
             ui.validateCollectionForm();
