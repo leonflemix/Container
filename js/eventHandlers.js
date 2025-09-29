@@ -38,7 +38,7 @@ const handleUpdateContainer = async (containerId, updateData) => {
     const container = state.containers.find(c => c.id === containerId);
     const history = container.history || [];
     history.push({
-        status: updateData.status,
+        status: updateData.status || container.status,
         location: updateData.location || container.location,
         timestamp: new Date().toISOString()
     });

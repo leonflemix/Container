@@ -156,15 +156,18 @@ export const renderDriverDashboard = () => {
     containerEl.innerHTML = '';
 
     const tasksByDriver = {};
-    const driverNames = new Set(state.collections.map(c => c.driverName).concat(state.containers.map(c => c.driver)));
-    
-    driverNames.forEach(name => { if(name) tasksByDriver[name] = [] });
+    // Ensure all drivers are initialized in the tasks object
+    state.drivers.forEach(driver => {
+        tasksByDriver[driver.name] = [];
+    });
 
+    // Add collection tasks
     state.collections.forEach(collection => {
         const collectedCount = collection.collectedContainers?.length || 0;
         const remainingToCollect = collection.qty - collectedCount;
         if (remainingToCollect > 0) {
-            tasksByDriver[collection.driverName]?.push({
+             if (!tasksByDriver[collection.driverName]) tasksByDriver[collection.driverName] = [];
+            tasksByDriver[collection.driverName].push({
                 type: 'collect',
                 collection: collection,
                 qty: remainingToCollect,
@@ -172,6 +175,7 @@ export const renderDriverDashboard = () => {
         }
     });
 
+    // Add delivery tasks
     state.containers.forEach(container => {
         if (container.status === '📦🚚COLLECTED FROM PIER' && container.driver) {
              if (!tasksByDriver[container.driver]) tasksByDriver[container.driver] = [];
@@ -181,7 +185,6 @@ export const renderDriverDashboard = () => {
             });
         }
     });
-
 
     if (Object.keys(tasksByDriver).every(key => tasksByDriver[key].length === 0)) {
         containerEl.innerHTML = '<div class="text-center py-12 text-gray-500"><p>No active tasks for drivers.</p></div>';
