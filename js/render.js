@@ -6,7 +6,6 @@ export const renderContainers = () => {
     const tableBody = document.getElementById('container-table-body');
     const noContainersMessage = document.getElementById('no-containers-message');
     
-    // Filter for containers that are part of an active collection and not yet returned to the pier.
     const activeContainers = state.containers.filter(c => c.bookingNumber && c.status !== 'Returned to Pier');
 
     tableBody.innerHTML = '';
