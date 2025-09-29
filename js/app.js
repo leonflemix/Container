@@ -30,7 +30,7 @@ async function loadHTML() {
             }
         }
 
-        const modals = ['container', 'booking', 'collection', 'collect', 'edit'];
+        const modals = ['container', 'booking', 'collection', 'collect', 'edit', 'update-container'];
         const modalPlaceholder = document.getElementById('modal-placeholder');
         for (const modal of modals) {
             const response = await fetch(`modals/${modal}.html`);

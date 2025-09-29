@@ -32,6 +32,26 @@ const handleFormSubmit = async (e) => {
     ui.closeModal('modal');
 };
 
+const handleUpdateContainerFormSubmit = async (e) => {
+    e.preventDefault();
+    const containerId = document.getElementById('update-container-id-input').value;
+    const newLocation = document.getElementById('update-container-location').value;
+
+    if (!containerId || !newLocation) {
+        console.error("Missing data for container update.");
+        return;
+    }
+
+    const updateData = {
+        location: newLocation,
+        status: 'Moved to Operator',
+        lastUpdated: new Date().toISOString()
+    };
+
+    await firebase.updateItem('containers', containerId, updateData);
+    ui.closeModal('update-modal');
+};
+
 const handleDriverFormSubmit = async (e) => {
     e.preventDefault();
     const name = document.getElementById('new-driver-name').value.trim();
@@ -289,7 +309,9 @@ export function setupEventListeners() {
         if (button.id === 'collection-cancel-btn') ui.closeModal('collection-modal');
         if (button.id === 'collect-cancel-btn') ui.closeModal('collect-modal');
         if (button.id === 'edit-cancel-btn') ui.closeModal('edit-modal');
+        if (button.id === 'update-cancel-btn') ui.closeModal('update-modal');
         
+        if (button.classList.contains('update-btn')) ui.openUpdateModal(button.dataset.id);
         if (button.classList.contains('edit-item-btn')) ui.openEditModal(button.dataset.collection, button.dataset.id);
         if (button.classList.contains('delete-item-btn')) handleDeleteClick(button.dataset.collection, button.dataset.id);
         if (button.classList.contains('deliver-btn')) handleDeliverToYard(button.dataset.containerId);
@@ -304,6 +326,7 @@ export function setupEventListeners() {
         const formId = e.target.id;
         switch(formId) {
             case 'container-form': handleFormSubmit(e); break;
+            case 'update-container-form': handleUpdateContainerFormSubmit(e); break;
             case 'booking-form': handleBookingFormSubmit(e); break;
             case 'collection-form': handleCollectionFormSubmit(e); break;
             case 'collect-form': handleCollectFormSubmit(e); break;
