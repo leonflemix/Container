@@ -156,7 +156,7 @@ export const renderDriverDashboard = () => {
     containerEl.innerHTML = '';
 
     const tasksByDriver = {};
-    // Ensure all drivers are initialized in the tasks object
+    // Initialize all drivers
     state.drivers.forEach(driver => {
         tasksByDriver[driver.name] = [];
     });
@@ -165,8 +165,7 @@ export const renderDriverDashboard = () => {
     state.collections.forEach(collection => {
         const collectedCount = collection.collectedContainers?.length || 0;
         const remainingToCollect = collection.qty - collectedCount;
-        if (remainingToCollect > 0) {
-             if (!tasksByDriver[collection.driverName]) tasksByDriver[collection.driverName] = [];
+        if (remainingToCollect > 0 && collection.driverName) {
             tasksByDriver[collection.driverName].push({
                 type: 'collect',
                 collection: collection,
@@ -248,6 +247,7 @@ export const renderDriverDashboard = () => {
         containerEl.appendChild(driverSection);
     }
 };
+
 
 export const renderOperatorDashboard = () => {
     const containerEl = document.getElementById('operator-tasks-container');
