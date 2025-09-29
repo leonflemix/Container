@@ -6,6 +6,7 @@ export const renderContainers = () => {
     const tableBody = document.getElementById('container-table-body');
     const noContainersMessage = document.getElementById('no-containers-message');
     
+    // Filter for containers that are part of an active collection and not yet returned to the pier.
     const activeContainers = state.containers.filter(c => c.bookingNumber && c.status !== 'Returned to Pier');
 
     tableBody.innerHTML = '';
@@ -23,9 +24,10 @@ export const renderContainers = () => {
                 <td class="px-6 py-4">${c.type || 'N/A'}</td>
                 <td class="px-6 py-4">${ui.getLocationIcon(c.location)}</td>
                 <td class="px-6 py-4">${ui.getStatusBadge(c.status)}</td>
+                <td class="px-6 py-4 text-gray-500">${ui.formatTimeAgo(c.lastUpdated)}</td>
                 <td class="px-6 py-4 text-gray-500">${c.deliveredAtYardTimestamp ? ui.formatTimestamp(c.deliveredAtYardTimestamp) : 'N/A'}</td>
                 <td class="px-6 py-4 text-center">
-                    <button data-id="${c.id}" class="edit-btn font-medium text-blue-600 hover:underline mr-2">Edit</button>
+                    <button data-id="${c.id}" class="update-btn font-medium text-blue-600 hover:underline mr-2">Update</button>
                     <button data-collection="containers" data-id="${c.id}" class="delete-item-btn font-medium text-red-600 hover:underline">Delete</button>
                 </td>
             `;
@@ -169,8 +171,8 @@ export const renderDriverDashboard = () => {
 
         (collection.collectedContainers || []).forEach(collected => {
             const container = state.containers.find(cont => cont.id === collected.containerId);
-            if (container && container.location !== 'Yard') {
-                tasksByDriver[driverName].push({
+            if (container && container.location === 'Yard' && container.status !== 'Loaded') {
+                 tasksByDriver[driverName].push({
                     type: 'deliver',
                     container: container,
                     collection: collection
@@ -258,15 +260,20 @@ export const renderOperatorDashboard = () => {
     if (!containerEl) return;
     containerEl.innerHTML = '';
 
-    const containersAtYard = state.containers.filter(c => c.location === 'Yard' && c.status === '📦🚚Delivered to YARD');
+    const containersAtOperators = state.containers.filter(c => 
+        c.location !== 'Yard' && 
+        c.location !== 'Pier' && 
+        !c.location.startsWith('CH-') &&
+        c.status === 'Moved to Operator'
+    );
 
-    if (containersAtYard.length === 0) {
-        containerEl.innerHTML = '<div class="text-center py-12 text-gray-500"><p>No containers awaiting loading at the yard.</p></div>';
+    if (containersAtOperators.length === 0) {
+        containerEl.innerHTML = '<div class="text-center py-12 text-gray-500"><p>No containers awaiting loading at operator locations.</p></div>';
         return;
     }
     
-    const tasksByLocation = containersAtYard.reduce((acc, container) => {
-        const locationName = container.location || 'Yard';
+    const tasksByLocation = containersAtOperators.reduce((acc, container) => {
+        const locationName = container.location;
         if (!acc[locationName]) {
             acc[locationName] = [];
         }
@@ -286,7 +293,7 @@ export const renderOperatorDashboard = () => {
                         <tr>
                             <th scope="col" class="px-6 py-3">Container #</th>
                             <th scope="col" class="px-6 py-3">Type</th>
-                            <th scope="col" class="px-6 py-3">Inserted Timestamp</th>
+                            <th scope="col" class="px-6 py-3">Arrival Timestamp</th>
                             <th scope="col" class="px-6 py-3 text-center">Action</th>
                         </tr>
                     </thead>
@@ -302,7 +309,7 @@ export const renderOperatorDashboard = () => {
             row.innerHTML = `
                 <td class="px-6 py-4 font-semibold">${container.serial}</td>
                 <td class="px-6 py-4">${container.type}</td>
-                <td class="px-6 py-4">${ui.formatTimestamp(container.deliveredAtYardTimestamp)}</td>
+                <td class="px-6 py-4">${ui.formatTimestamp(container.lastUpdated)}</td>
                 <td class="px-6 py-4 text-center">
                     <button data-container-id="${container.id}" class="loaded-btn bg-purple-600 text-white font-semibold py-1 px-3 rounded-md hover:bg-purple-700 text-xs">Loaded</button>
                 </td>
@@ -312,6 +319,7 @@ export const renderOperatorDashboard = () => {
         containerEl.appendChild(locationSection);
     }
 };
+
 
 export const renderDriversList = () => {
     const listElement = document.getElementById('drivers-list');
