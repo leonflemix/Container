@@ -32,23 +32,18 @@ const handleFormSubmit = async (e) => {
     ui.closeModal('modal');
 };
 
-const handleUpdateContainerFormSubmit = async (e) => {
-    e.preventDefault();
-    const containerId = document.getElementById('update-container-id-input').value;
-    const newLocation = document.getElementById('update-container-location').value;
+const handleUpdateContainer = async (containerId, updateData) => {
+    if (!containerId || !updateData) return;
 
-    if (!containerId || !newLocation) {
-        console.error("Missing data for container update.");
-        return;
-    }
+    const container = state.containers.find(c => c.id === containerId);
+    const history = container.history || [];
+    history.push({
+        status: updateData.status,
+        location: updateData.location || container.location,
+        timestamp: new Date().toISOString()
+    });
 
-    const updateData = {
-        location: newLocation,
-        status: 'Moved to Operator',
-        lastUpdated: new Date().toISOString()
-    };
-
-    await firebase.updateItem('containers', containerId, updateData);
+    await firebase.updateItem('containers', containerId, { ...updateData, history });
     ui.closeModal('update-modal');
 };
 
@@ -175,7 +170,8 @@ const handleCollectFormSubmit = async (e) => {
         driver: parentCollection.driverName,
         bookingNumber: parentCollection.bookingNumber,
         lastUpdated: new Date().toISOString(),
-        collectedAtTimestamp: new Date().toISOString()
+        collectedAtTimestamp: new Date().toISOString(),
+        history: [{ status: '📦🚚COLLECTED FROM PIER', location: parentCollection.chassisName, timestamp: new Date().toISOString() }]
     };
 
     const containerRef = await firebase.addItem('containers', newContainerData);
@@ -193,49 +189,25 @@ const handleCollectFormSubmit = async (e) => {
 
 const handleDeliverToYard = async (containerId) => {
     if (!containerId) return;
-
     const updateData = {
         location: 'Yard',
         status: '📦🚚Delivered to YARD',
-        deliveredAtYardTimestamp: new Date().toISOString()
+        deliveredAtYardTimestamp: new Date().toISOString(),
+        lastUpdated: new Date().toISOString()
     };
-    await firebase.updateItem('containers', containerId, updateData);
-
-    const parentCollection = state.collections.find(coll => 
-        (coll.collectedContainers || []).some(cc => cc.containerId === containerId)
-    );
-
-    if (parentCollection) {
-        let allDelivered = true;
-        for (const collected of parentCollection.collectedContainers) {
-            const container = state.containers.find(c => c.id === collected.containerId);
-            if (container && container.location !== 'Yard') {
-                allDelivered = false;
-                break;
-            }
-        }
-
-        if (allDelivered && parentCollection.collectedContainers.length === parentCollection.qty) {
-            await firebase.updateItem('collections', parentCollection.id, {
-                status: 'Collection Complete'
-            });
-        }
-    }
+    await handleUpdateContainer(containerId, updateData);
 };
+
 
 const handleLoaded = async (containerId) => {
     if (!containerId) return;
 
     const updateData = {
         status: 'Loaded',
-        loadedTimestamp: new Date().toISOString()
+        loadedTimestamp: new Date().toISOString(),
+        lastUpdated: new Date().toISOString()
     };
-    await firebase.updateItem('containers', containerId, updateData);
-};
-
-
-const handleEditFormSubmit = async (e) => {
-    // This function needs to be fully implemented based on the edit modal's dynamic content
+    await handleUpdateContainer(containerId, updateData);
 };
 
 const addCollectionItem = async (collectionName, value) => {
@@ -291,34 +263,43 @@ export function setupEventListeners() {
 
         if (!button) return;
 
-        if (button.id === 'mobile-menu-button') {
-            document.getElementById('mobile-menu').classList.toggle('hidden');
-            document.getElementById('menu-open-icon').classList.toggle('hidden');
-            document.getElementById('menu-closed-icon').classList.toggle('hidden');
-            return;
+        const containerId = document.getElementById('update-container-id-input').value;
+
+        switch (button.id) {
+            case 'mobile-menu-button':
+                document.getElementById('mobile-menu').classList.toggle('hidden');
+                document.getElementById('menu-open-icon').classList.toggle('hidden');
+                document.getElementById('menu-closed-icon').classList.toggle('hidden');
+                break;
+            case 'addContainerBtn': ui.openModal(); break;
+            case 'addBookingBtn': ui.openBookingModal(); break;
+            case 'createCollectionBtn': ui.openCollectionModal(); break;
+            case 'cancel-btn': ui.closeModal('modal'); break;
+            case 'booking-cancel-btn': ui.closeModal('booking-modal'); break;
+            case 'collection-cancel-btn': ui.closeModal('collection-modal'); break;
+            case 'collect-cancel-btn': ui.closeModal('collect-modal'); break;
+            case 'edit-cancel-btn': ui.closeModal('edit-modal'); break;
+            case 'update-cancel-btn': ui.closeModal('update-modal'); break;
+            case 'undo-btn': handleUndo(); break;
+            // Update Modal Actions
+            case 'action-loaded': handleLoaded(containerId); break;
+            case 'action-move-location': handleUpdateContainer(containerId, { location: document.getElementById('update-container-location').value, status: 'Moved to Operator', lastUpdated: new Date().toISOString() }); break;
+            case 'action-park-yes': ui.renderUpdateModalContent(state.containers.find(c=>c.id === containerId), 'step-hold'); break;
+            case 'action-park-no': ui.renderUpdateModalContent(state.containers.find(c=>c.id === containerId), 'step-weighing'); break;
+            case 'action-hold-temp': handleUpdateContainer(containerId, { status: 'Temp Hold', lastUpdated: new Date().toISOString() }); break;
+            case 'action-hold-issue': handleUpdateContainer(containerId, { status: 'Busy/Issue Hold', lastUpdated: new Date().toISOString() }); break;
+            case 'action-tilter': ui.renderUpdateModalContent(state.containers.find(c=>c.id === containerId), 'step-tilter'); break;
+            case 'action-continue': ui.renderUpdateModalContent(state.containers.find(c=>c.id === containerId), 'step-weighing'); break;
+            case 'action-move-tilter': handleUpdateContainer(containerId, { location: document.getElementById('update-tilter-location').value, status: 'Moved to Tilter', lastUpdated: new Date().toISOString() }); break;
         }
-        
-        if (button.id === 'addContainerBtn') ui.openModal();
-        if (button.id === 'addBookingBtn') ui.openBookingModal();
-        if (button.id === 'createCollectionBtn') ui.openCollectionModal();
+
         if (button.classList.contains('collect-btn')) ui.openCollectModal(button.dataset.collectionId);
         if (button.classList.contains('collect-booking-btn')) ui.openCollectionModal(button.dataset.bookingId);
-        
-        if (button.id === 'cancel-btn') ui.closeModal('modal');
-        if (button.id === 'booking-cancel-btn') ui.closeModal('booking-modal');
-        if (button.id === 'collection-cancel-btn') ui.closeModal('collection-modal');
-        if (button.id === 'collect-cancel-btn') ui.closeModal('collect-modal');
-        if (button.id === 'edit-cancel-btn') ui.closeModal('edit-modal');
-        if (button.id === 'update-cancel-btn') ui.closeModal('update-modal');
-        
         if (button.classList.contains('update-btn')) ui.openUpdateModal(button.dataset.id);
         if (button.classList.contains('edit-item-btn')) ui.openEditModal(button.dataset.collection, button.dataset.id);
         if (button.classList.contains('delete-item-btn')) handleDeleteClick(button.dataset.collection, button.dataset.id);
         if (button.classList.contains('deliver-btn')) handleDeliverToYard(button.dataset.containerId);
         if (button.classList.contains('loaded-btn')) handleLoaded(button.dataset.containerId);
-        
-        if (button.id === 'undo-btn') handleUndo();
-
     });
 
     document.body.addEventListener('submit', (e) => {
@@ -326,11 +307,9 @@ export function setupEventListeners() {
         const formId = e.target.id;
         switch(formId) {
             case 'container-form': handleFormSubmit(e); break;
-            case 'update-container-form': handleUpdateContainerFormSubmit(e); break;
             case 'booking-form': handleBookingFormSubmit(e); break;
             case 'collection-form': handleCollectionFormSubmit(e); break;
             case 'collect-form': handleCollectFormSubmit(e); break;
-            case 'edit-item-form': handleEditFormSubmit(e); break;
             case 'add-driver-form': handleDriverFormSubmit(e); break;
             case 'add-chassis-form': handleChassisFormSubmit(e); break;
             case 'add-status-form': handleStatusFormSubmit(e); break;
