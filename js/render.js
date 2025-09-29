@@ -156,12 +156,11 @@ export const renderDriverDashboard = () => {
     containerEl.innerHTML = '';
 
     const tasksByDriver = {};
-    const driverNames = new Set(state.collections.map(c => c.driverName));
-
-    driverNames.forEach(driverName => tasksByDriver[driverName] = []);
+    const driverNames = new Set(state.collections.map(c => c.driverName).concat(state.containers.map(c => c.driver)));
+    
+    driverNames.forEach(name => { if(name) tasksByDriver[name] = [] });
 
     state.collections.forEach(collection => {
-        // Task to collect remaining containers
         const collectedCount = collection.collectedContainers?.length || 0;
         const remainingToCollect = collection.qty - collectedCount;
         if (remainingToCollect > 0) {
@@ -174,7 +173,6 @@ export const renderDriverDashboard = () => {
     });
 
     state.containers.forEach(container => {
-        // Task to deliver collected containers to the yard
         if (container.status === '📦🚚COLLECTED FROM PIER' && container.driver) {
              if (!tasksByDriver[container.driver]) tasksByDriver[container.driver] = [];
              tasksByDriver[container.driver].push({

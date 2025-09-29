@@ -307,6 +307,7 @@ export function setupEventListeners() {
         const formId = e.target.id;
         switch(formId) {
             case 'container-form': handleFormSubmit(e); break;
+            // Note: update-container has no form submission, only button clicks
             case 'booking-form': handleBookingFormSubmit(e); break;
             case 'collection-form': handleCollectionFormSubmit(e); break;
             case 'collect-form': handleCollectFormSubmit(e); break;
