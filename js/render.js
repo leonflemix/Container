@@ -156,33 +156,16 @@ export const renderDriverDashboard = () => {
     containerEl.innerHTML = '';
 
     const tasksByDriver = {};
+    const driverNames = new Set(state.collections.map(c => c.driverName));
 
-    const activeCollections = state.collections.filter(c => c.status !== 'Collection Complete' || (c.collectedContainers || []).some(cc => {
-        const container = state.containers.find(cont => cont.id === cc.containerId);
-        return container && container.location !== 'Yard';
-    }));
+    driverNames.forEach(driverName => tasksByDriver[driverName] = []);
 
-    activeCollections.forEach(collection => {
-        const driverName = collection.driverName || 'Unassigned';
-        if (!tasksByDriver[driverName]) {
-            tasksByDriver[driverName] = [];
-        }
-
-        (collection.collectedContainers || []).forEach(collected => {
-            const container = state.containers.find(cont => cont.id === collected.containerId);
-            if (container && container.location === 'Yard' && container.status !== 'Loaded') {
-                 tasksByDriver[driverName].push({
-                    type: 'deliver',
-                    container: container,
-                    collection: collection
-                });
-            }
-        });
-        
+    state.collections.forEach(collection => {
+        // Task to collect remaining containers
         const collectedCount = collection.collectedContainers?.length || 0;
         const remainingToCollect = collection.qty - collectedCount;
         if (remainingToCollect > 0) {
-            tasksByDriver[driverName].push({
+            tasksByDriver[collection.driverName]?.push({
                 type: 'collect',
                 collection: collection,
                 qty: remainingToCollect,
@@ -190,7 +173,19 @@ export const renderDriverDashboard = () => {
         }
     });
 
-    if (Object.keys(tasksByDriver).length === 0) {
+    state.containers.forEach(container => {
+        // Task to deliver collected containers to the yard
+        if (container.status === '📦🚚COLLECTED FROM PIER' && container.driver) {
+             if (!tasksByDriver[container.driver]) tasksByDriver[container.driver] = [];
+             tasksByDriver[container.driver].push({
+                type: 'deliver',
+                container: container
+            });
+        }
+    });
+
+
+    if (Object.keys(tasksByDriver).every(key => tasksByDriver[key].length === 0)) {
         containerEl.innerHTML = '<div class="text-center py-12 text-gray-500"><p>No active tasks for drivers.</p></div>';
         return;
     }
@@ -226,11 +221,10 @@ export const renderDriverDashboard = () => {
             row.className = 'bg-white border-b hover:bg-gray-50';
             
             if (task.type === 'collect') {
-                const booking = state.bookings.find(b => b.id === task.collection.bookingId);
                 row.innerHTML = `
                     <td class="px-6 py-4 font-semibold">Collect ${task.qty} container(s)</td>
                     <td class="px-6 py-4">${task.collection.bookingNumber}</td>
-                    <td class="px-6 py-4">${ui.getStatusBadge(task.collection.status)}</td>
+                    <td class="px-6 py-4">${ui.getStatusBadge('Awaiting Collection')}</td>
                     <td class="px-6 py-4 text-xs">${ui.formatTimestamp(task.collection.createdAt)}</td>
                     <td class="px-6 py-4 text-center">
                         <button data-collection-id="${task.collection.id}" class="collect-btn bg-green-500 text-white font-semibold py-1 px-3 rounded-md hover:bg-green-600 text-xs">Collect</button>
@@ -260,6 +254,7 @@ export const renderOperatorDashboard = () => {
     containerEl.innerHTML = '';
 
     const containersAtOperators = state.containers.filter(c => 
+        c.location &&
         c.location !== 'Yard' && 
         c.location !== 'Pier' && 
         !c.location.startsWith('CH-') &&
