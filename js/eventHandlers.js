@@ -189,6 +189,8 @@ const handleCollectFormSubmit = async (e) => {
 
 const handleDeliverToYard = async (containerId) => {
     if (!containerId) return;
+
+    // First, update the container's status and location
     const updateData = {
         location: 'Yard',
         status: '📦🚚Delivered to YARD',
@@ -196,6 +198,32 @@ const handleDeliverToYard = async (containerId) => {
         lastUpdated: new Date().toISOString()
     };
     await handleUpdateContainer(containerId, updateData);
+
+    // Now, find the parent collection to see if it's complete
+    const parentCollection = state.collections.find(coll => 
+        (coll.collectedContainers || []).some(cc => cc.containerId === containerId)
+    );
+
+    if (parentCollection) {
+        // Check if all containers in this collection are now at the yard
+        let allDelivered = true;
+        for (const collected of parentCollection.collectedContainers) {
+            // Check the just-updated container by its ID, otherwise check other containers by their location in the state
+            if (collected.containerId === containerId) continue;
+            
+            const container = state.containers.find(c => c.id === collected.containerId);
+            if (container && container.location !== 'Yard') {
+                allDelivered = false;
+                break;
+            }
+        }
+
+        if (allDelivered && parentCollection.collectedContainers.length === parentCollection.qty) {
+            await firebase.updateItem('collections', parentCollection.id, {
+                status: 'Collection Complete'
+            });
+        }
+    }
 };
 
 
@@ -281,6 +309,7 @@ export function setupEventListeners() {
             case 'edit-cancel-btn': ui.closeModal('edit-modal'); break;
             case 'update-cancel-btn': ui.closeModal('update-modal'); break;
             case 'undo-btn': handleUndo(); break;
+            // Update Modal Actions
             case 'action-loaded': handleLoaded(containerId); break;
             case 'action-move-location': handleUpdateContainer(containerId, { location: document.getElementById('update-container-location').value, status: 'Moved to Operator', lastUpdated: new Date().toISOString() }); break;
             case 'action-park-yes': ui.renderUpdateModalContent(state.containers.find(c=>c.id === containerId), 'step-hold'); break;
@@ -306,6 +335,7 @@ export function setupEventListeners() {
         const formId = e.target.id;
         switch(formId) {
             case 'container-form': handleFormSubmit(e); break;
+            // Note: update-container has no form submission, only button clicks
             case 'booking-form': handleBookingFormSubmit(e); break;
             case 'collection-form': handleCollectionFormSubmit(e); break;
             case 'collect-form': handleCollectFormSubmit(e); break;
