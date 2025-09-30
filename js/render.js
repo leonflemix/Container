@@ -76,13 +76,24 @@ export const renderDriversKPIs = () => {
     if (!kpiContainer) return;
 
     const totalDrivers = state.drivers.length;
-    const activeCollections = state.collections.filter(c => c.status !== 'Collection Complete');
-    const activeDrivers = new Set(activeCollections.map(c => c.driverId)).size;
     
+    const activeDriverIds = new Set();
+    state.collections.forEach(c => {
+        if (c.status !== 'Collection Complete') {
+            activeDriverIds.add(c.driverId);
+        }
+    });
+    state.containers.forEach(c => {
+        if(c.status === '📦🚚COLLECTED FROM PIER' && c.driver) {
+             const driver = state.drivers.find(d => d.name === c.driver);
+             if(driver) activeDriverIds.add(driver.id);
+        }
+    });
+
     kpiContainer.innerHTML = `
         <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200"><h3 class="text-sm font-medium text-gray-500">Total Drivers</h3><p class="text-3xl font-bold mt-2">${totalDrivers}</p></div>
-        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200"><h3 class="text-sm font-medium text-gray-500">Active Drivers</h3><p class="text-3xl font-bold mt-2 text-green-600">${activeDrivers}</p></div>
-        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200"><h3 class="text-sm font-medium text-gray-500">Open Collections</h3><p class="text-3xl font-bold mt-2 text-indigo-600">${activeCollections.length}</p></div>
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200"><h3 class="text-sm font-medium text-gray-500">Active Drivers</h3><p class="text-3xl font-bold mt-2 text-green-600">${activeDriverIds.size}</p></div>
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200"><h3 class="text-sm font-medium text-gray-500">Open Collections</h3><p class="text-3xl font-bold mt-2 text-indigo-600">${state.collections.filter(c => c.status !== 'Collection Complete').length}</p></div>
     `;
 };
 
@@ -177,7 +188,7 @@ export const renderDriverDashboard = () => {
 
     // Add delivery tasks for containers not yet at the yard
     state.containers.forEach(container => {
-        if (container.driver && container.status === '📦🚚COLLECTED FROM PIER' && container.location !== 'Yard') {
+        if (container.driver && container.status === '📦🚚COLLECTED FROM PIER') {
              if (!tasksByDriver[container.driver]) tasksByDriver[container.driver] = [];
              tasksByDriver[container.driver].push({
                 type: 'deliver',
