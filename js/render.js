@@ -79,7 +79,8 @@ export const renderDriversKPIs = () => {
     
     const activeDriverIds = new Set();
     state.collections.forEach(c => {
-        if (c.status !== 'Collection Complete') {
+        const collectedCount = c.collectedContainers?.length || 0;
+        if (c.qty - collectedCount > 0) {
             activeDriverIds.add(c.driverId);
         }
     });
@@ -93,9 +94,10 @@ export const renderDriversKPIs = () => {
     kpiContainer.innerHTML = `
         <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200"><h3 class="text-sm font-medium text-gray-500">Total Drivers</h3><p class="text-3xl font-bold mt-2">${totalDrivers}</p></div>
         <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200"><h3 class="text-sm font-medium text-gray-500">Active Drivers</h3><p class="text-3xl font-bold mt-2 text-green-600">${activeDriverIds.size}</p></div>
-        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200"><h3 class="text-sm font-medium text-gray-500">Open Collections</h3><p class="text-3xl font-bold mt-2 text-indigo-600">${state.collections.filter(c => c.status !== 'Collection Complete').length}</p></div>
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200"><h3 class="text-sm font-medium text-gray-500">Open Collections</h3><p class="text-3xl font-bold mt-2 text-indigo-600">${state.collections.filter(c => (c.collectedContainers?.length || 0) < c.qty).length}</p></div>
     `;
 };
+
 
 export const renderBookingsGrid = () => {
     const bookingsGridBody = document.getElementById('bookings-grid-body');
@@ -137,7 +139,7 @@ export const renderOpenCollectionsGrid = () => {
     const noOpenCollectionsMessage = document.getElementById('no-open-collections-message');
     if (!openCollectionsGridBody) return;
     openCollectionsGridBody.innerHTML = '';
-    const openCollections = state.collections.filter(c => c.status !== 'Collection Complete');
+    const openCollections = state.collections.filter(c => (c.collectedContainers?.length || 0) < c.qty);
     if (openCollections.length === 0) {
         noOpenCollectionsMessage.classList.remove('hidden');
     } else {

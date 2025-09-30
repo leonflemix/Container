@@ -175,19 +175,21 @@ const handleCollectFormSubmit = async (e) => {
 
 const handleDeliverToYard = async (containerId) => {
     if (!containerId) return;
+
     const updateData = {
         location: 'Yard',
         status: '📦🚚Delivered to YARD',
         deliveredAtYardTimestamp: new Date().toISOString(),
         lastUpdated: new Date().toISOString(),
-        driver: '' // Unassign driver
     };
+    
     await yardOps.handleUpdateContainer(containerId, updateData);
 };
 
 
 const handleLoaded = async (containerId) => {
     if (!containerId) return;
+
     const updateData = {
         status: 'Loaded',
         loadedTimestamp: new Date().toISOString(),
@@ -267,7 +269,6 @@ export function setupEventListeners() {
             case 'edit-cancel-btn': ui.closeModal('edit-modal'); break;
             case 'update-cancel-btn': ui.closeModal('update-modal'); break;
             case 'undo-btn': handleUndo(); break;
-            // Update Modal Actions
             case 'action-loaded': handleLoaded(containerId); break;
             case 'action-move-location': 
                 const newLocation = document.getElementById('update-container-location').value;
