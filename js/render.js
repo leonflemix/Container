@@ -161,7 +161,7 @@ export const renderDriverDashboard = () => {
         tasksByDriver[driver.name] = [];
     });
 
-    // Add collection tasks
+    // Add collection tasks for active collections
     state.collections.forEach(collection => {
         if (!collection.driverName) return;
         const collectedCount = collection.collectedContainers?.length || 0;
@@ -175,9 +175,9 @@ export const renderDriverDashboard = () => {
         }
     });
 
-    // Add delivery tasks
+    // Add delivery tasks for containers not yet at the yard
     state.containers.forEach(container => {
-        if (container.status === '📦🚚COLLECTED FROM PIER' && container.driver) {
+        if (container.driver && container.status === '📦🚚COLLECTED FROM PIER' && container.location !== 'Yard') {
              if (!tasksByDriver[container.driver]) tasksByDriver[container.driver] = [];
              tasksByDriver[container.driver].push({
                 type: 'deliver',
