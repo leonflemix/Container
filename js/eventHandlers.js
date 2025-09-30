@@ -262,8 +262,9 @@ export function setupEventListeners() {
         }
 
         if (!button) return;
-
-        const containerId = document.getElementById('update-container-id-input').value;
+        
+        // This needs to be fetched only when needed, inside the specific handlers.
+        // const containerId = document.getElementById('update-container-id-input').value;
 
         switch (button.id) {
             case 'mobile-menu-button':
@@ -282,15 +283,15 @@ export function setupEventListeners() {
             case 'update-cancel-btn': ui.closeModal('update-modal'); break;
             case 'undo-btn': handleUndo(); break;
             // Update Modal Actions
-            case 'action-loaded': handleLoaded(containerId); break;
-            case 'action-move-location': handleUpdateContainer(containerId, { location: document.getElementById('update-container-location').value, status: 'Moved to Operator', lastUpdated: new Date().toISOString() }); break;
-            case 'action-park-yes': ui.renderUpdateModalContent(state.containers.find(c=>c.id === containerId), 'step-hold'); break;
-            case 'action-park-no': ui.renderUpdateModalContent(state.containers.find(c=>c.id === containerId), 'step-weighing'); break;
-            case 'action-hold-temp': handleUpdateContainer(containerId, { status: 'Temp Hold', lastUpdated: new Date().toISOString() }); break;
-            case 'action-hold-issue': handleUpdateContainer(containerId, { status: 'Busy/Issue Hold', lastUpdated: new Date().toISOString() }); break;
-            case 'action-tilter': ui.renderUpdateModalContent(state.containers.find(c=>c.id === containerId), 'step-tilter'); break;
-            case 'action-continue': ui.renderUpdateModalContent(state.containers.find(c=>c.id === containerId), 'step-weighing'); break;
-            case 'action-move-tilter': handleUpdateContainer(containerId, { location: document.getElementById('update-tilter-location').value, status: 'Moved to Tilter', lastUpdated: new Date().toISOString() }); break;
+            case 'action-loaded': handleLoaded(document.getElementById('update-container-id-input').value); break;
+            case 'action-move-location': handleUpdateContainer(document.getElementById('update-container-id-input').value, { location: document.getElementById('update-container-location').value, status: 'Moved to Operator', lastUpdated: new Date().toISOString() }); break;
+            case 'action-park-yes': ui.renderUpdateModalContent(state.containers.find(c=>c.id === document.getElementById('update-container-id-input').value), 'step-hold'); break;
+            case 'action-park-no': ui.renderUpdateModalContent(state.containers.find(c=>c.id === document.getElementById('update-container-id-input').value), 'step-weighing'); break;
+            case 'action-hold-temp': handleUpdateContainer(document.getElementById('update-container-id-input').value, { status: 'Temp Hold', lastUpdated: new Date().toISOString() }); break;
+            case 'action-hold-issue': handleUpdateContainer(document.getElementById('update-container-id-input').value, { status: 'Busy/Issue Hold', lastUpdated: new Date().toISOString() }); break;
+            case 'action-tilter': ui.renderUpdateModalContent(state.containers.find(c=>c.id === document.getElementById('update-container-id-input').value), 'step-tilter'); break;
+            case 'action-continue': ui.renderUpdateModalContent(state.containers.find(c=>c.id === document.getElementById('update-container-id-input').value), 'step-weighing'); break;
+            case 'action-move-tilter': handleUpdateContainer(document.getElementById('update-container-id-input').value, { location: document.getElementById('update-tilter-location').value, status: 'Moved to Tilter', lastUpdated: new Date().toISOString() }); break;
         }
 
         if (button.classList.contains('collect-btn')) ui.openCollectModal(button.dataset.collectionId);

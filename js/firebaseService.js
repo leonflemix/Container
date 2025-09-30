@@ -40,7 +40,7 @@ export async function initFirebase() {
 
 function setupRealtimeListeners() {
     const collectionsConfig = {
-        containers: { renderFns: [render.renderContainers, render.renderKPIs, updateReports, render.renderOperatorDashboard] },
+        containers: { renderFns: [render.renderContainers, render.renderKPIs, updateReports, render.renderOperatorDashboard, render.renderDriverDashboard] },
         drivers: { sortKey: 'name', renderFns: [render.renderDriversList, render.renderDriversKPIs, render.renderDriverDashboard, populateDriverFilter, updateReports] },
         chassis: { sortKey: 'name', renderFns: [render.renderChassisList] },
         locations: { sortKey: 'name', renderFns: [() => render.renderCollectionList('locations-list', state.locations, 'locations'), render.renderOperatorDashboard] },

@@ -163,9 +163,10 @@ export const renderDriverDashboard = () => {
 
     // Add collection tasks
     state.collections.forEach(collection => {
+        if (!collection.driverName) return;
         const collectedCount = collection.collectedContainers?.length || 0;
         const remainingToCollect = collection.qty - collectedCount;
-        if (remainingToCollect > 0 && collection.driverName) {
+        if (remainingToCollect > 0) {
             tasksByDriver[collection.driverName].push({
                 type: 'collect',
                 collection: collection,
