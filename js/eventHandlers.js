@@ -329,7 +329,7 @@ export function setupEventListeners() {
     });
     
     document.body.addEventListener('change', (e) => {
-        if (['collection-form-qty', 'collection-form-booking', 'collection-form-chassis'].includes(e..target.id)) {
+        if (['collection-form-qty', 'collection-form-booking', 'collection-form-chassis'].includes(e.target.id)) {
             ui.validateCollectionForm();
         }
     });
