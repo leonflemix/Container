@@ -197,7 +197,7 @@ const handleDeliverToYard = async (containerId) => {
         deliveredAtYardTimestamp: new Date().toISOString(),
         lastUpdated: new Date().toISOString()
     };
-    await firebase.updateItem('containers', containerId, updateData); // Switched to simpler update
+    await handleUpdateContainer(containerId, updateData);
 };
 
 
@@ -283,6 +283,7 @@ export function setupEventListeners() {
             case 'edit-cancel-btn': ui.closeModal('edit-modal'); break;
             case 'update-cancel-btn': ui.closeModal('update-modal'); break;
             case 'undo-btn': handleUndo(); break;
+            // Update Modal Actions
             case 'action-loaded': handleLoaded(containerId); break;
             case 'action-move-location': handleUpdateContainer(containerId, { location: document.getElementById('update-container-location').value, status: 'Moved to Operator', lastUpdated: new Date().toISOString() }); break;
             case 'action-park-yes': ui.renderUpdateModalContent(state.containers.find(c=>c.id === containerId), 'step-hold'); break;
@@ -328,7 +329,7 @@ export function setupEventListeners() {
     });
     
     document.body.addEventListener('change', (e) => {
-        if (['collection-form-qty', 'collection-form-booking', 'collection-form-chassis'].includes(e.target.id)) {
+        if (['collection-form-qty', 'collection-form-booking', 'collection-form-chassis'].includes(e..target.id)) {
             ui.validateCollectionForm();
         }
     });
