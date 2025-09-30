@@ -2,6 +2,7 @@
 import * as ui from './ui.js';
 import * as firebase from './firebaseService.js';
 import * as state from './state.js';
+import * as yardOps from './yardOperations.js';
 
 const handleFormSubmit = async (e) => {
     e.preventDefault();
@@ -30,23 +31,6 @@ const handleFormSubmit = async (e) => {
         await firebase.addItem('containers', containerData);
     }
     ui.closeModal('modal');
-};
-
-const handleUpdateContainer = async (containerId, updateData) => {
-    if (!containerId || !updateData) return;
-
-    const container = state.containers.find(c => c.id === containerId);
-    if (!container) return;
-    
-    const history = container.history || [];
-    history.push({
-        status: updateData.status || container.status,
-        location: updateData.location || container.location,
-        timestamp: new Date().toISOString()
-    });
-
-    await firebase.updateItem('containers', containerId, { ...updateData, history });
-    ui.closeModal('update-modal');
 };
 
 const handleDriverFormSubmit = async (e) => {
@@ -191,57 +175,25 @@ const handleCollectFormSubmit = async (e) => {
 
 const handleDeliverToYard = async (containerId) => {
     if (!containerId) return;
-
     const updateData = {
         location: 'Yard',
         status: '📦🚚Delivered to YARD',
         deliveredAtYardTimestamp: new Date().toISOString(),
-        lastUpdated: new Date().toISOString()
+        lastUpdated: new Date().toISOString(),
+        driver: '' // Unassign driver
     };
-
-    // Use the generic update function to handle history and UI updates
-    await handleUpdateContainer(containerId, updateData);
-
-    // After updating, check if the parent collection is now complete.
-    const parentCollection = state.collections.find(coll => 
-        (coll.collectedContainers || []).some(cc => cc.containerId === containerId)
-    );
-
-    if (parentCollection) {
-        // We need to re-fetch the latest state of containers to make an accurate check
-        const allContainers = state.containers;
-        const deliveredContainer = allContainers.find(c => c.id === containerId);
-
-        let allDelivered = true;
-        for (const collected of parentCollection.collectedContainers) {
-            // Find each container in the collection from the main state
-            const container = allContainers.find(c => c.id === collected.containerId);
-            
-            // If any container isn't at the yard, the collection is not complete.
-            if (!container || container.location !== 'Yard') {
-                allDelivered = false;
-                break;
-            }
-        }
-
-        if (allDelivered && parentCollection.collectedContainers.length === parentCollection.qty) {
-            await firebase.updateItem('collections', parentCollection.id, {
-                status: 'Collection Complete'
-            });
-        }
-    }
+    await yardOps.handleUpdateContainer(containerId, updateData);
 };
 
 
 const handleLoaded = async (containerId) => {
     if (!containerId) return;
-
     const updateData = {
         status: 'Loaded',
         loadedTimestamp: new Date().toISOString(),
         lastUpdated: new Date().toISOString()
     };
-    await handleUpdateContainer(containerId, updateData);
+    await yardOps.handleUpdateContainer(containerId, updateData);
 };
 
 const addCollectionItem = async (collectionName, value) => {
@@ -315,20 +267,24 @@ export function setupEventListeners() {
             case 'edit-cancel-btn': ui.closeModal('edit-modal'); break;
             case 'update-cancel-btn': ui.closeModal('update-modal'); break;
             case 'undo-btn': handleUndo(); break;
+            // Update Modal Actions
             case 'action-loaded': handleLoaded(containerId); break;
-            case 'action-move-location': handleUpdateContainer(containerId, { location: document.getElementById('update-container-location').value, status: 'Moved to Operator', lastUpdated: new Date().toISOString() }); break;
-            case 'action-park-yes': ui.renderUpdateModalContent(state.containers.find(c=>c.id === containerId), 'step-hold'); break;
-            case 'action-park-no': ui.renderUpdateModalContent(state.containers.find(c=>c.id === containerId), 'step-weighing'); break;
-            case 'action-hold-temp': handleUpdateContainer(containerId, { status: 'Temp Hold', lastUpdated: new Date().toISOString() }); break;
-            case 'action-hold-issue': handleUpdateContainer(containerId, { status: 'Busy/Issue Hold', lastUpdated: new Date().toISOString() }); break;
-            case 'action-tilter': ui.renderUpdateModalContent(state.containers.find(c=>c.id === containerId), 'step-tilter'); break;
-            case 'action-continue': ui.renderUpdateModalContent(state.containers.find(c=>c.id === containerId), 'step-weighing'); break;
-            case 'action-move-tilter': handleUpdateContainer(containerId, { location: document.getElementById('update-tilter-location').value, status: 'Moved to Tilter', lastUpdated: new Date().toISOString() }); break;
+            case 'action-move-location': 
+                const newLocation = document.getElementById('update-container-location').value;
+                yardOps.handleUpdateContainer(containerId, { location: newLocation, driver: newLocation, status: 'Moved to Operator' }); 
+                break;
+            case 'action-park-yes': yardOps.renderUpdateModalContent(state.containers.find(c=>c.id === containerId), 'step-hold'); break;
+            case 'action-park-no': yardOps.renderUpdateModalContent(state.containers.find(c=>c.id === containerId), 'step-weighing'); break;
+            case 'action-hold-temp': yardOps.handleUpdateContainer(containerId, { status: 'Temp Hold' }); break;
+            case 'action-hold-issue': yardOps.handleUpdateContainer(containerId, { status: 'Busy/Issue Hold' }); break;
+            case 'action-tilter': yardOps.renderUpdateModalContent(state.containers.find(c=>c.id === containerId), 'step-tilter'); break;
+            case 'action-continue': yardOps.renderUpdateModalContent(state.containers.find(c=>c.id === containerId), 'step-weighing'); break;
+            case 'action-move-tilter': yardOps.handleUpdateContainer(containerId, { location: document.getElementById('update-tilter-location').value, status: 'Moved to Tilter' }); break;
         }
 
         if (button.classList.contains('collect-btn')) ui.openCollectModal(button.dataset.collectionId);
         if (button.classList.contains('collect-booking-btn')) ui.openCollectionModal(button.dataset.bookingId);
-        if (button.classList.contains('update-btn')) ui.openUpdateModal(button.dataset.id);
+        if (button.classList.contains('update-btn')) yardOps.openUpdateModal(button.dataset.id);
         if (button.classList.contains('edit-item-btn')) ui.openEditModal(button.dataset.collection, button.dataset.id);
         if (button.classList.contains('delete-item-btn')) handleDeleteClick(button.dataset.collection, button.dataset.id);
         if (button.classList.contains('deliver-btn')) handleDeliverToYard(button.dataset.containerId);
