@@ -139,7 +139,7 @@ export const renderOpenCollectionsGrid = () => {
     const noOpenCollectionsMessage = document.getElementById('no-open-collections-message');
     if (!openCollectionsGridBody) return;
     openCollectionsGridBody.innerHTML = '';
-    const openCollections = state.collections.filter(c => (c.collectedContainers?.length || 0) < c.qty);
+    const openCollections = state.collections.filter(c => c.status !== 'Collection Complete');
     if (openCollections.length === 0) {
         noOpenCollectionsMessage.classList.remove('hidden');
     } else {

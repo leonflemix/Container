@@ -175,15 +175,13 @@ const handleCollectFormSubmit = async (e) => {
 
 const handleDeliverToYard = async (containerId) => {
     if (!containerId) return;
-
     const updateData = {
         location: 'Yard',
         status: '📦🚚Delivered to YARD',
         deliveredAtYardTimestamp: new Date().toISOString(),
         lastUpdated: new Date().toISOString(),
     };
-    
-    await yardOps.handleUpdateContainer(containerId, updateData);
+    await yardOps.handleUpdateContainer(containerId, updateData, true); // Close modal on completion
 };
 
 
