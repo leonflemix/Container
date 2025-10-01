@@ -68,6 +68,10 @@ export const handleUpdateContainer = async (containerId, updateData, closeModal 
     
     if(closeModal) {
         ui.closeModal('update-modal');
+    } else {
+        // Re-render the modal with the next step
+        const updatedContainer = { ...container, ...updateData };
+        renderCurrentStep(updatedContainer);
     }
 };
 

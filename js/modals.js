@@ -290,8 +290,9 @@ export const handleDeliverToYard = async (containerId) => {
         location: 'Yard',
         status: '📦🚚Delivered to YARD',
         deliveredAtYardTimestamp: new Date().toISOString(),
+        driver: '' 
     };
-    await yardOps.handleUpdateContainer(containerId, updateData, false);
+    await yardOps.handleUpdateContainer(containerId, updateData, true);
 };
 
 export const handleLoaded = async (containerId) => {
@@ -301,4 +302,5 @@ export const handleLoaded = async (containerId) => {
     };
     await yardOps.handleUpdateContainer(containerId, updateData);
 };
+export const { openUpdateModal } = yardOps;
 

@@ -14,7 +14,7 @@
         <div id="update-container-content" class="p-6">
             <input type="hidden" id="update-container-id-input">
 
-            <!-- Step 1: Start in Yard -> Tilter Check -->
+            <!-- Step: Start in Yard -> Tilter Check -->
             <div id="step-tilter-check" class="update-step hidden space-y-3">
                 <p class="text-center font-medium">Is a tilter available for this container?</p>
                 <div class="flex justify-center space-x-4">
@@ -23,13 +23,13 @@
                 </div>
             </div>
 
-            <!-- Step 2: Container is in Tilter -->
+            <!-- Step: Container is in Tilter -->
             <div id="step-in-tilter" class="update-step hidden space-y-3">
                 <p class="text-center mb-4">The container is currently in a tilter. When finished, take it out.</p>
                 <button id="action-take-out-tilter" class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700">Take Out of Tilter</button>
             </div>
 
-            <!-- Step 3: Park Check -->
+            <!-- Step: Park Check -->
             <div id="step-park-check" class="update-step hidden space-y-3">
                <p class="text-center font-medium">Park container before proceeding?</p>
                <div class="flex justify-center space-x-4">
@@ -38,14 +38,14 @@
                </div>
             </div>
 
-            <!-- Step 4: Hold Type (after parking) -->
+            <!-- Step: Hold Type (after parking) -->
             <div id="step-hold" class="update-step hidden space-y-3">
                 <p class="text-center font-medium">Select a reason for parking (hold type):</p>
                 <button id="action-hold-temp" class="w-full bg-yellow-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-yellow-600">Temporary Hold</button>
                 <button id="action-hold-issue" class="w-full bg-red-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-red-600">Temporary Issue (e.g. overweight)</button>
             </div>
             
-            <!-- Step 5: After Hold -->
+            <!-- Step: After Hold -->
             <div id="step-after-hold" class="update-step hidden space-y-3">
                 <p class="text-center font-medium">This container is on hold. What's the next step?</p>
                  <div class="flex justify-center space-x-4">
@@ -54,7 +54,7 @@
                 </div>
             </div>
             
-            <!-- Step 6: Weighing Process (Placeholder) -->
+            <!-- Step: Weighing Process (Placeholder) -->
             <div id="step-weighing" class="update-step hidden">
                 <p class="text-center font-semibold text-gray-800">Weighing Process</p>
                 <p class="text-center text-sm text-gray-500 mt-2">This section will contain fields for scale weights, damage checks, and other weighing procedures.</p>

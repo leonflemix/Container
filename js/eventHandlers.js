@@ -76,7 +76,7 @@ export function setupEventListeners() {
             case 'action-tilter-yes': yardOps.handleUpdateContainer(containerId, { status: 'In Tilter' }, false); break;
             case 'action-tilter-no': yardOps.handleUpdateContainer(containerId, { status: 'Awaiting Weighing' }, false); break;
             case 'action-take-out-tilter': yardOps.handleUpdateContainer(containerId, { status: 'Out of Tilter' }, false); break;
-            case 'action-park-yes': yardOps.renderCurrentStep(state.containers.find(c => c.id === containerId), 'step-hold'); break;
+            case 'action-park-yes': yardOps.renderCurrentStep(state.containers.find(c=>c.id === containerId), 'step-hold'); break;
             case 'action-park-no': yardOps.handleUpdateContainer(containerId, { status: 'Awaiting Weighing' }, false); break;
             case 'action-hold-temp': yardOps.handleUpdateContainer(containerId, { status: 'Temp Hold' }); break;
             case 'action-hold-issue': yardOps.handleUpdateContainer(containerId, { status: 'Busy/Issue Hold' }); break;
