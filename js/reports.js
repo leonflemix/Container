@@ -1,6 +1,5 @@
 // File: js/reports.js
 import * as state from './state.js';
-import * as render from './render.js';
 
 let turnaroundChart = null;
 
@@ -21,37 +20,23 @@ function calculateReportData() {
         filteredContainers = filteredContainers.filter(c => new Date(c.deliveredAtYardTimestamp) <= new Date(endDateFilter));
     }
 
-    // Calculate Turnaround Times
     const turnaroundTimes = filteredContainers.map(c => {
-        const collected = new Date(c.collectedAtTimestamp);
-        const delivered = new Date(c.deliveredAtYardTimestamp);
-        const diffHours = (delivered - collected) / (1000 * 60 * 60);
+        const diffHours = (new Date(c.deliveredAtYardTimestamp) - new Date(c.collectedAtTimestamp)) / (1000 * 60 * 60);
         return { serial: c.serial, hours: diffHours.toFixed(2) };
     });
 
-    // Calculate Driver Performance
     const driverPerformance = state.drivers.map(driver => {
         const driverContainers = filteredContainers.filter(c => c.driver === driver.name);
         const totalDeliveries = driverContainers.length;
         if (totalDeliveries === 0) {
             return { name: driver.name, deliveries: 0, avgHours: 0 };
         }
-        const totalHours = driverContainers.reduce((sum, c) => {
-            const collected = new Date(c.collectedAtTimestamp);
-            const delivered = new Date(c.deliveredAtYardTimestamp);
-            return sum + (delivered - collected);
-        }, 0);
+        const totalHours = driverContainers.reduce((sum, c) => sum + ((new Date(c.deliveredAtYardTimestamp) - new Date(c.collectedAtTimestamp))), 0);
         const avgHours = (totalHours / totalDeliveries) / (1000 * 60 * 60);
         return { name: driver.name, deliveries: totalDeliveries, avgHours: avgHours.toFixed(2) };
     });
 
     return { turnaroundTimes, driverPerformance };
-}
-
-export function updateReports() {
-    const { turnaroundTimes, driverPerformance } = calculateReportData();
-    renderDriverPerformanceTable(driverPerformance);
-    renderTurnaroundChart(turnaroundTimes);
 }
 
 function renderDriverPerformanceTable(performanceData) {
@@ -104,7 +89,6 @@ export function populateDriverFilter() {
     const filter = document.getElementById('report-driver-filter');
     if (!filter) return;
     
-    // Clear existing options except for "All Drivers"
     while (filter.options.length > 1) {
         filter.remove(1);
     }
@@ -115,5 +99,11 @@ export function populateDriverFilter() {
         option.textContent = driver.name;
         filter.appendChild(option);
     });
+}
+
+export function renderReportsPage() {
+    const { turnaroundTimes, driverPerformance } = calculateReportData();
+    renderDriverPerformanceTable(driverPerformance);
+    renderTurnaroundChart(turnaroundTimes);
 }
 

@@ -91,3 +91,9 @@ export const getStatusBadge = (statusDescription) => {
     return `<span>${statusDescription || 'N/A'}</span>`;
 };
 
+export function toggleMobileMenu() {
+    document.getElementById('mobile-menu').classList.toggle('hidden');
+    document.getElementById('menu-open-icon').classList.toggle('hidden');
+    document.getElementById('menu-closed-icon').classList.toggle('hidden');
+}
+

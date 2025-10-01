@@ -2,7 +2,7 @@
 import * as ui from './ui.js';
 import * as state from './state.js';
 import * as firebase from './firebaseService.js';
-import { handleUpdateContainer } from './yardOperations.js';
+import * as yardOps from './yardOperations.js';
 
 export const openContainerModal = (containerId = null) => {
     const form = document.getElementById('container-form');
@@ -136,42 +136,169 @@ export const validateCollectionForm = () => {
 };
 
 export const handleContainerFormSubmit = async (e) => {
-    // ... same as in your eventHandlers.js
+    e.preventDefault();
+    const idInput = document.getElementById('container-id-input').value;
+    const serial = document.getElementById('container-serial').value.trim().toUpperCase();
+    if (!serial) { console.error("Container serial is required."); return; }
+
+    const containerData = {
+        serial: serial,
+        type: document.getElementById('container-type').value,
+        location: document.getElementById('container-location').value,
+        status: document.getElementById('container-status').value,
+        driver: document.getElementById('container-driver').value,
+        lastUpdated: new Date().toISOString(),
+        history: [{ status: 'Created', location: 'Yard', timestamp: new Date().toISOString() }]
+    };
+    
+    if (idInput) {
+        await firebase.updateItem('containers', idInput, containerData);
+    } else {
+        await firebase.addItem('containers', containerData);
+    }
+    ui.closeModal('modal');
 };
+
 export const handleBookingFormSubmit = async (e) => {
-    // ... same as in your eventHandlers.js
+    e.preventDefault();
+    const idInput = document.getElementById('booking-id-input').value;
+    const number = document.getElementById('booking-form-number').value.trim().toUpperCase();
+    const qty = document.getElementById('booking-form-qty').value;
+    const type = document.getElementById('booking-form-type').value;
+    const deadline = document.getElementById('booking-form-deadline').value;
+    const containerSize = document.getElementById('booking-form-size').value;
+
+    const bookingData = { 
+        number, 
+        qty: Number(qty), 
+        type, 
+        deadline,
+        containerSize
+    };
+
+    if (idInput) {
+        await firebase.updateItem('bookings', idInput, bookingData);
+    } else {
+        bookingData.assignedContainers = [];
+        await firebase.addItem('bookings', bookingData);
+    }
+    ui.closeModal('booking-modal');
 };
+
 export const handleCollectionFormSubmit = async (e) => {
-    // ... same as in your eventHandlers.js
+    e.preventDefault();
+    validateCollectionForm();
+    if (document.getElementById('collection-save-btn').disabled) return;
+
+    const driverId = document.getElementById('collection-form-driver').value;
+    const bookingId = document.getElementById('collection-form-booking').value;
+    const chassisId = document.getElementById('collection-form-chassis').value;
+    const qty = Number(document.getElementById('collection-form-qty').value);
+    
+    const driver = state.drivers.find(d => d.id === driverId);
+    const booking = state.bookings.find(b => b.id === bookingId);
+    const selectedChassis = state.chassis.find(c => c.id === chassisId);
+
+    const collectionData = {
+        driverId,
+        driverName: driver?.name,
+        bookingId,
+        bookingNumber: booking?.number,
+        chassisId,
+        chassisName: selectedChassis?.name,
+        qty,
+        containerSize: booking?.containerSize,
+        createdAt: new Date().toISOString(),
+        status: '📦🚚COLLECTING FROM PIER',
+        collectedContainers: []
+    };
+    
+    await firebase.addItem('collections', collectionData);
+    ui.closeModal('collection-modal');
 };
+
 export const handleCollectFormSubmit = async (e) => {
-    // ... same as in your eventHandlers.js
+    e.preventDefault();
+    const collectionId = document.getElementById('collection-id-input').value;
+    const containerNumber = document.getElementById('container-number').value.trim().toUpperCase();
+    const tare = document.getElementById('container-tare').value;
+
+    if (!collectionId || !containerNumber || !tare) return;
+
+    const parentCollection = state.collections.find(c => c.id === collectionId);
+    const parentBooking = state.bookings.find(b => b.id === parentCollection.bookingId);
+
+    const newContainerData = {
+        serial: containerNumber,
+        tare: Number(tare),
+        type: parentBooking.type,
+        status: '📦🚚COLLECTED FROM PIER',
+        location: parentCollection.chassisName,
+        driver: parentCollection.driverName,
+        bookingNumber: parentCollection.bookingNumber,
+        lastUpdated: new Date().toISOString(),
+        collectedAtTimestamp: new Date().toISOString(),
+        history: [{ status: '📦🚚COLLECTED FROM PIER', location: parentCollection.chassisName, timestamp: new Date().toISOString() }]
+    };
+
+    const containerRef = await firebase.addItem('containers', newContainerData);
+
+    const updatedCollectedContainers = [...(parentCollection.collectedContainers || []), { containerId: containerRef.id, containerSerial: containerNumber }];
+    
+    await firebase.updateItem('collections', collectionId, {
+        collectedContainers: updatedCollectedContainers,
+    });
+
+    await firebase.updateItem('bookings', parentCollection.bookingId, {
+        assignedContainers: [...(parentBooking.assignedContainers || []), containerRef.id]
+    });
+
+    ui.closeModal('collect-modal');
 };
+
 export const handleDriverFormSubmit = async (e) => {
-    // ... same as in your eventHandlers.js
+    e.preventDefault();
+    const name = document.getElementById('new-driver-name').value.trim();
+    const idNumber = document.getElementById('new-driver-id').value.trim();
+    const plate = document.getElementById('new-driver-plate').value.trim().toUpperCase();
+    const weight = document.getElementById('new-driver-weight').value;
+    await firebase.addItem('drivers', { name, idNumber, plate, weight: Number(weight) });
+    e.target.reset();
 };
+
 export const handleChassisFormSubmit = async (e) => {
-    // ... same as in your eventHandlers.js
+    e.preventDefault();
+    const name = document.getElementById('new-chassis-name').value.trim();
+    const weight = document.getElementById('new-chassis-weight').value;
+    const is40ft = document.getElementById('new-chassis-40ft').checked;
+    const is2x20 = document.getElementById('new-chassis-2x20').checked;
+    await firebase.addItem('chassis', { name, weight: Number(weight), is40ft, is2x20 });
+    e.target.reset();
 };
+
 export const handleStatusFormSubmit = async (e) => {
-    // ... same as in your eventHandlers.js
+    e.preventDefault();
+    const emoji = document.getElementById('new-status-emoji').value.trim();
+    const description = document.getElementById('new-status-description').value.trim();
+    await firebase.addItem('statuses', { emoji, description });
+    e.target.reset();
 };
+
 export const handleDeliverToYard = async (containerId) => {
     if (!containerId) return;
     const updateData = {
         location: 'Yard',
         status: '📦🚚Delivered to YARD',
         deliveredAtYardTimestamp: new Date().toISOString(),
-        lastUpdated: new Date().toISOString()
     };
-    await handleUpdateContainer(containerId, updateData, false);
+    await yardOps.handleUpdateContainer(containerId, updateData, false);
 };
+
 export const handleLoaded = async (containerId) => {
     if (!containerId) return;
     const updateData = {
-        status: 'Loaded',
-        lastUpdated: new Date().toISOString()
+        status: 'Loaded'
     };
-    await handleUpdateContainer(containerId, updateData, false);
+    await yardOps.handleUpdateContainer(containerId, updateData);
 };
-export const { openUpdateModal } = yardOps;
+

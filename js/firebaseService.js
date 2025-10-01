@@ -49,7 +49,7 @@ function setupRealtimeListeners() {
         locations: { render: [renderSettingsPage, renderDashboard, renderOperatorsPage] },
         statuses: { render: [renderSettingsPage] },
         containerTypes: { render: [renderSettingsPage] },
-        bookings: { render: [renderLogisticsPage] },
+        bookings: { render: [renderLogisticsPage, renderDriversPage] },
         collections: { render: [renderLogisticsPage, renderDriversPage, renderReportsPage] }
     };
 
@@ -64,13 +64,9 @@ function setupRealtimeListeners() {
 
 export async function addItem(collectionName, data, id = null) {
     try {
-        if (id) {
-            await setDoc(doc(db, `/artifacts/${window.appId}/public/data/${collectionName}`, id), data);
-            return { id };
-        } else {
-            const docRef = await addDoc(collection(db, `/artifacts/${window.appId}/public/data/${collectionName}`), data);
-            return docRef;
-        }
+        const ref = id ? doc(db, `/artifacts/${window.appId}/public/data/${collectionName}`, id) : doc(collection(db, `/artifacts/${window.appId}/public/data/${collectionName}`));
+        await setDoc(ref, data);
+        return ref;
     } catch (error) {
         console.error(`Error adding to ${collectionName}:`, error);
     }

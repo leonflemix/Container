@@ -3,6 +3,7 @@ import * as ui from './ui.js';
 import * as firebase from './firebaseService.js';
 import * as state from './state.js';
 import * as modals from './modals.js';
+import * as yardOps from './yardOperations.js';
 
 const addCollectionItem = async (collectionName, value) => {
     if (!value) return;
@@ -72,22 +73,22 @@ export function setupEventListeners() {
             case 'edit-cancel-btn': ui.closeModal('edit-modal'); break;
             case 'update-cancel-btn': ui.closeModal('update-modal'); break;
             case 'undo-btn': handleUndo(); break;
-            case 'action-tilter-yes': modals.handleYardOperation(containerId, 'tilter-yes'); break;
-            case 'action-tilter-no': modals.handleYardOperation(containerId, 'tilter-no'); break;
-            case 'action-take-out-tilter': modals.handleYardOperation(containerId, 'take-out-tilter'); break;
-            case 'action-park-yes': modals.renderUpdateModalContent(state.containers.find(c => c.id === containerId), 'step-hold'); break;
-            case 'action-park-no': modals.handleYardOperation(containerId, 'park-no'); break;
-            case 'action-hold-temp': modals.handleYardOperation(containerId, 'hold-temp'); break;
-            case 'action-hold-issue': modals.handleYardOperation(containerId, 'hold-issue'); break;
-            case 'action-tilter-from-hold': modals.handleYardOperation(containerId, 'tilter-from-hold'); break;
-            case 'action-continue-from-hold': modals.handleYardOperation(containerId, 'continue-from-hold'); break;
-            case 'action-weighing-complete': modals.handleYardOperation(containerId, 'weighing-complete'); break;
+            case 'action-tilter-yes': yardOps.handleUpdateContainer(containerId, { status: 'In Tilter' }, false); break;
+            case 'action-tilter-no': yardOps.handleUpdateContainer(containerId, { status: 'Awaiting Weighing' }, false); break;
+            case 'action-take-out-tilter': yardOps.handleUpdateContainer(containerId, { status: 'Out of Tilter' }, false); break;
+            case 'action-park-yes': yardOps.renderCurrentStep(state.containers.find(c => c.id === containerId), 'step-hold'); break;
+            case 'action-park-no': yardOps.handleUpdateContainer(containerId, { status: 'Awaiting Weighing' }, false); break;
+            case 'action-hold-temp': yardOps.handleUpdateContainer(containerId, { status: 'Temp Hold' }); break;
+            case 'action-hold-issue': yardOps.handleUpdateContainer(containerId, { status: 'Busy/Issue Hold' }); break;
+            case 'action-tilter-from-hold': yardOps.handleUpdateContainer(containerId, { status: 'In Tilter' }, false); break;
+            case 'action-continue-from-hold': yardOps.handleUpdateContainer(containerId, { status: 'Awaiting Weighing' }, false); break;
+            case 'action-weighing-complete': yardOps.handleUpdateContainer(containerId, { status: 'Weighing Complete' }); break; 
         }
 
         // --- DELEGATE ACTIONS BASED ON BUTTON CLASS ---
         if (button.classList.contains('collect-btn')) modals.openCollectModal(button.dataset.collectionId);
         if (button.classList.contains('collect-booking-btn')) modals.openCollectionModal(button.dataset.bookingId);
-        if (button.classList.contains('update-btn')) modals.openUpdateModal(button.dataset.id);
+        if (button.classList.contains('update-btn')) yardOps.openUpdateModal(button.dataset.id);
         if (button.classList.contains('edit-item-btn')) modals.openEditModal(button.dataset.collection, button.dataset.id);
         if (button.classList.contains('delete-item-btn')) handleDeleteClick(button.dataset.collection, button.dataset.id);
         if (button.classList.contains('deliver-btn')) modals.handleDeliverToYard(button.dataset.containerId);
