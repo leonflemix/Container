@@ -2,199 +2,7 @@
 import * as ui from './ui.js';
 import * as firebase from './firebaseService.js';
 import * as state from './state.js';
-import * as yardOps from './yardOperations.js';
-
-const handleFormSubmit = async (e) => {
-    e.preventDefault();
-    const idInput = document.getElementById('container-id-input').value;
-    const serial = document.getElementById('container-serial').value.trim().toUpperCase();
-    if (!serial) { console.error("Container serial is required."); return; }
-
-    const containerData = {
-        serial: serial,
-        type: document.getElementById('container-type').value,
-        location: document.getElementById('container-location').value,
-        status: document.getElementById('container-status').value,
-        driver: document.getElementById('container-driver').value,
-        lastUpdated: new Date().toISOString()
-    };
-    
-    const lastDeleted = state.getLastDeletedItem();
-    if (lastDeleted && lastDeleted.collection === 'containers' && lastDeleted.data.serial === containerData.serial) {
-        await firebase.addItem('containers', lastDeleted.data, lastDeleted.id);
-        state.clearLastDeletedItem();
-    } else if (idInput) {
-        await firebase.updateItem('containers', idInput, containerData);
-    } else {
-        const existing = state.containers.find(c => c.serial === serial);
-        if (existing) { console.error('A container with this serial already exists.'); return; }
-        await firebase.addItem('containers', containerData);
-    }
-    ui.closeModal('modal');
-};
-
-const handleDriverFormSubmit = async (e) => {
-    e.preventDefault();
-    const name = document.getElementById('new-driver-name').value.trim();
-    const idNumber = document.getElementById('new-driver-id').value.trim();
-    const plate = document.getElementById('new-driver-plate').value.trim().toUpperCase();
-    const weight = document.getElementById('new-driver-weight').value;
-
-    if (!name || !idNumber || !plate || !weight) { console.error("All driver fields are required."); return; }
-    const driverData = { name, idNumber, plate, weight: Number(weight) };
-    await firebase.addItem('drivers', driverData);
-    e.target.reset();
-};
-
-const handleChassisFormSubmit = async (e) => {
-    e.preventDefault();
-    const name = document.getElementById('new-chassis-name').value.trim();
-    const weight = document.getElementById('new-chassis-weight').value;
-    const is40ft = document.getElementById('new-chassis-40ft').checked;
-    const is2x20 = document.getElementById('new-chassis-2x20').checked;
-
-    if (!name || !weight) { console.error("Chassis name and weight are required."); return; }
-    const chassisData = { name, weight: Number(weight), is40ft, is2x20 };
-    await firebase.addItem('chassis', chassisData);
-    e.target.reset();
-};
-
-const handleStatusFormSubmit = async (e) => {
-    e.preventDefault();
-    const emoji = document.getElementById('new-status-emoji').value.trim();
-    const description = document.getElementById('new-status-description').value.trim();
-    if (!emoji || !description) { console.error("Emoji and Description are required for statuses."); return; }
-    const statusData = { emoji, description };
-    await firebase.addItem('statuses', statusData);
-    e.target.reset();
-};
-
-const handleBookingFormSubmit = async (e) => {
-    e.preventDefault();
-    const idInput = document.getElementById('booking-id-input').value;
-    const number = document.getElementById('booking-form-number').value.trim().toUpperCase();
-    const qty = document.getElementById('booking-form-qty').value;
-    const type = document.getElementById('booking-form-type').value;
-    const deadline = document.getElementById('booking-form-deadline').value;
-    const containerSize = document.getElementById('booking-form-size').value;
-
-    if (!number || !qty || !type || !deadline || !containerSize) { console.error("All booking fields are required."); return; }
-    
-    const bookingData = { 
-        number, 
-        qty: Number(qty), 
-        type, 
-        deadline,
-        containerSize
-    };
-
-    if (idInput) {
-        await firebase.updateItem('bookings', idInput, bookingData);
-    } else {
-        bookingData.assignedContainers = [];
-        await firebase.addItem('bookings', bookingData);
-    }
-    ui.closeModal('booking-modal');
-};
-
-const handleCollectionFormSubmit = async (e) => {
-    e.preventDefault();
-    const collectionSaveBtn = document.getElementById('collection-save-btn');
-    ui.validateCollectionForm();
-    if (collectionSaveBtn.disabled) {
-        console.error("Validation failed. Cannot create collection.");
-        return;
-    }
-
-    const driverId = document.getElementById('collection-form-driver').value;
-    const bookingId = document.getElementById('collection-form-booking').value;
-    const chassisId = document.getElementById('collection-form-chassis').value;
-    const qty = Number(document.getElementById('collection-form-qty').value);
-    
-    const driver = state.drivers.find(d => d.id === driverId);
-    const booking = state.bookings.find(b => b.id === bookingId);
-    const selectedChassis = state.chassis.find(c => c.id === chassisId);
-
-    const collectionData = {
-        driverId,
-        driverName: driver?.name,
-        bookingId,
-        bookingNumber: booking?.number,
-        chassisId,
-        chassisName: selectedChassis?.name,
-        qty,
-        containerSize: booking?.containerSize,
-        createdAt: new Date().toISOString(),
-        status: '📦🚚COLLECTING FROM PIER',
-        collectedContainers: []
-    };
-    
-    await firebase.addItem('collections', collectionData);
-    ui.closeModal('collection-modal');
-};
-
-const handleCollectFormSubmit = async (e) => {
-    e.preventDefault();
-    const collectionId = document.getElementById('collection-id-input').value;
-    const containerNumber = document.getElementById('container-number').value.trim().toUpperCase();
-    const tare = document.getElementById('container-tare').value;
-
-    if (!collectionId || !containerNumber || !tare) {
-        console.error("All fields are required to collect a container.");
-        return;
-    }
-
-    const parentCollection = state.collections.find(c => c.id === collectionId);
-    const parentBooking = state.bookings.find(b => b.id === parentCollection.bookingId);
-
-    const newContainerData = {
-        serial: containerNumber,
-        tare: Number(tare),
-        type: parentBooking.type,
-        status: '📦🚚COLLECTED FROM PIER',
-        location: parentCollection.chassisName,
-        driver: parentCollection.driverName,
-        bookingNumber: parentCollection.bookingNumber,
-        lastUpdated: new Date().toISOString(),
-        collectedAtTimestamp: new Date().toISOString(),
-        history: [{ status: '📦🚚COLLECTED FROM PIER', location: parentCollection.chassisName, timestamp: new Date().toISOString() }]
-    };
-
-    const containerRef = await firebase.addItem('containers', newContainerData);
-
-    const updatedCollectedContainers = [...(parentCollection.collectedContainers || []), { containerId: containerRef.id, containerSerial: containerNumber }];
-    
-    await firebase.updateItem('collections', collectionId, {
-        collectedContainers: updatedCollectedContainers,
-    });
-
-    await firebase.updateBookingOnCollection(parentCollection.bookingId, containerRef.id);
-
-    ui.closeModal('collect-modal');
-};
-
-const handleDeliverToYard = async (containerId) => {
-    if (!containerId) return;
-    const updateData = {
-        location: 'Yard',
-        status: '📦🚚Delivered to YARD',
-        deliveredAtYardTimestamp: new Date().toISOString(),
-        lastUpdated: new Date().toISOString(),
-    };
-    await yardOps.handleUpdateContainer(containerId, updateData, true); // Close modal on completion
-};
-
-
-const handleLoaded = async (containerId) => {
-    if (!containerId) return;
-
-    const updateData = {
-        status: 'Loaded',
-        loadedTimestamp: new Date().toISOString(),
-        lastUpdated: new Date().toISOString()
-    };
-    await yardOps.handleUpdateContainer(containerId, updateData);
-};
+import * as modals from './modals.js';
 
 const addCollectionItem = async (collectionName, value) => {
     if (!value) return;
@@ -251,15 +59,12 @@ export function setupEventListeners() {
         
         const containerId = document.getElementById('update-container-id-input').value;
 
+        // --- DELEGATE ACTIONS BASED ON BUTTON ID ---
         switch (button.id) {
-            case 'mobile-menu-button':
-                document.getElementById('mobile-menu').classList.toggle('hidden');
-                document.getElementById('menu-open-icon').classList.toggle('hidden');
-                document.getElementById('menu-closed-icon').classList.toggle('hidden');
-                break;
-            case 'addContainerBtn': ui.openModal(); break;
-            case 'addBookingBtn': ui.openBookingModal(); break;
-            case 'createCollectionBtn': ui.openCollectionModal(); break;
+            case 'mobile-menu-button': ui.toggleMobileMenu(); break;
+            case 'addContainerBtn': modals.openContainerModal(); break;
+            case 'addBookingBtn': modals.openBookingModal(); break;
+            case 'createCollectionBtn': modals.openCollectionModal(); break;
             case 'cancel-btn': ui.closeModal('modal'); break;
             case 'booking-cancel-btn': ui.closeModal('booking-modal'); break;
             case 'collection-cancel-btn': ui.closeModal('collection-modal'); break;
@@ -267,48 +72,44 @@ export function setupEventListeners() {
             case 'edit-cancel-btn': ui.closeModal('edit-modal'); break;
             case 'update-cancel-btn': ui.closeModal('update-modal'); break;
             case 'undo-btn': handleUndo(); break;
-            case 'action-loaded': handleLoaded(containerId); break;
-            case 'action-move-location': 
-                const newLocation = document.getElementById('update-container-location').value;
-                yardOps.handleUpdateContainer(containerId, { location: newLocation, driver: newLocation, status: 'Moved to Operator' }); 
-                break;
-            case 'action-park-yes': yardOps.renderUpdateModalContent(state.containers.find(c=>c.id === containerId), 'step-hold'); break;
-            case 'action-park-no': yardOps.renderUpdateModalContent(state.containers.find(c=>c.id === containerId), 'step-weighing'); break;
-            case 'action-hold-temp': yardOps.handleUpdateContainer(containerId, { status: 'Temp Hold' }); break;
-            case 'action-hold-issue': yardOps.handleUpdateContainer(containerId, { status: 'Busy/Issue Hold' }); break;
-            case 'action-tilter': yardOps.renderUpdateModalContent(state.containers.find(c=>c.id === containerId), 'step-tilter'); break;
-            case 'action-continue': yardOps.renderUpdateModalContent(state.containers.find(c=>c.id === containerId), 'step-weighing'); break;
-            case 'action-move-tilter': yardOps.handleUpdateContainer(containerId, { location: document.getElementById('update-tilter-location').value, status: 'Moved to Tilter' }); break;
+            case 'action-tilter-yes': modals.handleYardOperation(containerId, 'tilter-yes'); break;
+            case 'action-tilter-no': modals.handleYardOperation(containerId, 'tilter-no'); break;
+            case 'action-take-out-tilter': modals.handleYardOperation(containerId, 'take-out-tilter'); break;
+            case 'action-park-yes': modals.renderUpdateModalContent(state.containers.find(c => c.id === containerId), 'step-hold'); break;
+            case 'action-park-no': modals.handleYardOperation(containerId, 'park-no'); break;
+            case 'action-hold-temp': modals.handleYardOperation(containerId, 'hold-temp'); break;
+            case 'action-hold-issue': modals.handleYardOperation(containerId, 'hold-issue'); break;
+            case 'action-tilter-from-hold': modals.handleYardOperation(containerId, 'tilter-from-hold'); break;
+            case 'action-continue-from-hold': modals.handleYardOperation(containerId, 'continue-from-hold'); break;
+            case 'action-weighing-complete': modals.handleYardOperation(containerId, 'weighing-complete'); break;
         }
 
-        if (button.classList.contains('collect-btn')) ui.openCollectModal(button.dataset.collectionId);
-        if (button.classList.contains('collect-booking-btn')) ui.openCollectionModal(button.dataset.bookingId);
-        if (button.classList.contains('update-btn')) yardOps.openUpdateModal(button.dataset.id);
-        if (button.classList.contains('edit-item-btn')) ui.openEditModal(button.dataset.collection, button.dataset.id);
+        // --- DELEGATE ACTIONS BASED ON BUTTON CLASS ---
+        if (button.classList.contains('collect-btn')) modals.openCollectModal(button.dataset.collectionId);
+        if (button.classList.contains('collect-booking-btn')) modals.openCollectionModal(button.dataset.bookingId);
+        if (button.classList.contains('update-btn')) modals.openUpdateModal(button.dataset.id);
+        if (button.classList.contains('edit-item-btn')) modals.openEditModal(button.dataset.collection, button.dataset.id);
         if (button.classList.contains('delete-item-btn')) handleDeleteClick(button.dataset.collection, button.dataset.id);
-        if (button.classList.contains('deliver-btn')) handleDeliverToYard(button.dataset.containerId);
-        if (button.classList.contains('loaded-btn')) handleLoaded(button.dataset.containerId);
+        if (button.classList.contains('deliver-btn')) modals.handleDeliverToYard(button.dataset.containerId);
+        if (button.classList.contains('loaded-btn')) modals.handleLoaded(button.dataset.containerId);
     });
 
     document.body.addEventListener('submit', (e) => {
         e.preventDefault();
-        const formId = e.target.id;
-        switch(formId) {
-            case 'container-form': handleFormSubmit(e); break;
-            case 'booking-form': handleBookingFormSubmit(e); break;
-            case 'collection-form': handleCollectionFormSubmit(e); break;
-            case 'collect-form': handleCollectFormSubmit(e); break;
-            case 'add-driver-form': handleDriverFormSubmit(e); break;
-            case 'add-chassis-form': handleChassisFormSubmit(e); break;
-            case 'add-status-form': handleStatusFormSubmit(e); break;
+        switch(e.target.id) {
+            case 'container-form': modals.handleContainerFormSubmit(e); break;
+            case 'booking-form': modals.handleBookingFormSubmit(e); break;
+            case 'collection-form': modals.handleCollectionFormSubmit(e); break;
+            case 'collect-form': modals.handleCollectFormSubmit(e); break;
+            case 'add-driver-form': modals.handleDriverFormSubmit(e); break;
+            case 'add-chassis-form': modals.handleChassisFormSubmit(e); break;
+            case 'add-status-form': modals.handleStatusFormSubmit(e); break;
             case 'add-location-form': 
-                const locInput = e.target.querySelector('input');
-                addCollectionItem('locations', locInput.value.trim());
+                addCollectionItem('locations', e.target.querySelector('input').value.trim());
                 e.target.reset();
                 break;
             case 'add-container-type-form':
-                const typeInput = e.target.querySelector('input');
-                addCollectionItem('containerTypes', typeInput.value.trim());
+                addCollectionItem('containerTypes', e.target.querySelector('input').value.trim());
                 e.target.reset();
                 break;
         }
@@ -316,7 +117,7 @@ export function setupEventListeners() {
     
     document.body.addEventListener('change', (e) => {
         if (['collection-form-qty', 'collection-form-booking', 'collection-form-chassis'].includes(e.target.id)) {
-            ui.validateCollectionForm();
+            modals.validateCollectionForm();
         }
     });
 }

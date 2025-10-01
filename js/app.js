@@ -1,7 +1,7 @@
 // File: js/app.js
 import { initFirebase } from './firebaseService.js';
-import * as ui from './ui.js';
 import { setupEventListeners } from './eventHandlers.js';
+import { updateDateTime } from './ui.js';
 
 async function loadHTML() {
     try {
@@ -48,8 +48,7 @@ async function loadHTML() {
 
 async function initApp() {
     await loadHTML();
-    
-    ui.updateDateTime();
+    updateDateTime();
     setupEventListeners();
     await initFirebase();
 }
