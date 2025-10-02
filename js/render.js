@@ -169,33 +169,24 @@ export const renderDriverDashboard = () => {
     containerEl.innerHTML = '';
 
     const tasksByDriver = {};
-    // Initialize all drivers
     state.drivers.forEach(driver => {
         tasksByDriver[driver.name] = [];
     });
 
-    // Add collection tasks for active collections
     state.collections.forEach(collection => {
         if (!collection.driverName) return;
         const collectedCount = collection.collectedContainers?.length || 0;
         const remainingToCollect = collection.qty - collectedCount;
         if (remainingToCollect > 0) {
-            tasksByDriver[collection.driverName].push({
-                type: 'collect',
-                collection: collection,
-                qty: remainingToCollect,
-            });
+            if (!tasksByDriver[collection.driverName]) tasksByDriver[collection.driverName] = [];
+            tasksByDriver[collection.driverName].push({ type: 'collect', collection, qty: remainingToCollect });
         }
     });
 
-    // Add delivery tasks for containers not yet at the yard
     state.containers.forEach(container => {
         if (container.driver && container.status === '📦🚚COLLECTED FROM PIER') {
              if (!tasksByDriver[container.driver]) tasksByDriver[container.driver] = [];
-             tasksByDriver[container.driver].push({
-                type: 'deliver',
-                container: container
-            });
+             tasksByDriver[container.driver].push({ type: 'deliver', container });
         }
     });
 
@@ -261,7 +252,6 @@ export const renderDriverDashboard = () => {
         containerEl.appendChild(driverSection);
     }
 };
-
 
 export const renderOperatorDashboard = () => {
     const containerEl = document.getElementById('operator-tasks-container');
